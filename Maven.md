@@ -436,3 +436,19 @@ e）从私服下载jar
 ​		ii、选择使用的archetype
 
 ​		iii、按步操作，略
+
+## 14.springboot与maven整合
+
+当出现找不到类的问题时，需要将项目安装到本地仓库。
+
+如果直接运行`mvn install`，maven会将springboot的一个启动jar文件 安装到本地仓库，这个jar是我们项目中不能用的。如果别的模块引用了该模块，会出现找不到类或者包的问题。
+
+比如：dao模块依赖了pojo模块，如果将由springboot构建的pojo模块安装到本地仓库，当我们再安装dao的时候，就会出现找不到pojo的问题。
+
+解决方法：
+
+1、执行`mvn package`
+
+2、进入target目录，里面有个original文件
+
+3、执行`mvn install:install-file -Dfile=xxx.original -DgroupId="your groupId" -DartifactId="your artifactId" -Dversion="your version" -Dpackaging=jar`
