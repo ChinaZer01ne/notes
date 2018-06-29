@@ -59,7 +59,7 @@ dubbo:
     address: zookeeper://192.168.1.127:2181
   protocol:
     name: dubbo
-    port: 20880
+    port: 20881 # 发布服务的端口
 
 ```
 
@@ -75,6 +75,7 @@ dubbo:
     name: consumer
   registry:
     address: zookeeper://192.168.1.127:2181
-
+  protocol:
+    port: 20880 # 默认不配就是20880，是dubbo服务的端口
 ```
 

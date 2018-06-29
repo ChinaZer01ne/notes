@@ -412,3 +412,109 @@ HTTP Status 405 - Request method 'POST' not supported
 ```
 
 这个错误。如果使用`.loginPage("/login.html")`就必须增加`.loginProcessingUrl("/login")`
+
+## Springboot文件上传
+
+springboot项目里用MultipartFile获取前端传的file为null问题
+
+`@EnableAutoConfiguration(exclude = {MultipartAutoConfiguration.class})  `
+
+注：springboot自带的Mutipartfile简单一点，所以将前面排除依赖的注解去掉，完全使用springboot自带的Mutipartfile就行。 
+
+## Springboot整合FastDFS
+
+注意：一定要保证linux上tracker和storage的端口是开放的。
+
+## Springboot整合SpringDataRedis
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-starter-data-redis</artifactId>
+   <version>2.0.3.RELEASE</version>
+</dependency>
+```
+
+```yaml
+spring:
+  redis:
+    host: 192.168.1.127
+    port: 6379
+```
+
+基本操作：
+
+```java
+//设置值
+redisTemplate.boundValueOps("key").set("lion");
+//取值
+redisTemplate.boundValueOps("key").get();
+//删除值
+redisTemplate.delete("key");
+```
+
+set集合操作：
+
+```java
+//集合中添加值
+redisTemplate.boundSetOps("setName").add("lion");
+redisTemplate.boundSetOps("setName").add("jack");
+redisTemplate.boundSetOps("setName").add("lucy");
+//集合成员
+redisTemplate.boundSetOps("setName").members();
+//删除值
+redisTemplate.boundSetOps("setName").members();
+//删除集合
+redisTemplate.delete("setName");
+```
+
+list集合操作：
+
+```java
+//右压栈：后添加的元素排在后面（队列）
+redisTemplate.boundListOps("listName").rightPush("lion");
+redisTemplate.boundListOps("listName").rightPush("jack");
+redisTemplate.boundListOps("listName").rightPush("lucy");
+//前10个元素，下标从0开始
+redisTemplate.boundListOps("listName").range(0, 10);
+//左压栈:先添加的元素排在后面（栈）
+redisTemplate.boundListOps("listName").leftPush("lion");
+redisTemplate.boundListOps("listName").leftPush("jack");
+redisTemplate.boundListOps("listName").leftPush("lucy");
+//删除集合
+redisTemplate.delete("listName");
+//按索引位置查询
+redisTemplate.boundListOps("listName").index(2);
+//删除两个“jack”，2代表数量，从前往后算起
+redisTemplate.boundListOps("listName").remove(2, "jack");
+```
+
+hash操作：
+
+```java
+//添加值
+redisTemplate.boundHashOps("hashName").put("hacker","lion");
+redisTemplate.boundHashOps("hashName").put("girl","lucy");
+redisTemplate.boundHashOps("hashName").put("boy","jack");
+//获取所有key
+redisTemplate.boundHashOps("hashName").keys();
+//获取所有值
+redisTemplate.boundHashOps("hashName").values();
+//根据key取值
+redisTemplate.boundHashOps("hashName").get("hacker");
+//删除某个键值对
+redisTemplate.boundHashOps("hashName").delete("boy")
+//删除整个hash
+redisTemplate.boundHashOps("hashName").keys()
+```
+
+## SpringBootTest
+
+问题：
+
+```powershell
+Found multiple @SpringBootConfiguration annotated classes
+```
+
+测试的时候，要把所有服务都停掉。
