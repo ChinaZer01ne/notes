@@ -50,7 +50,7 @@ sysstemctl start  jenkins.service #启动jenkins服务
 ```shell
 #!/bin/bash
 #description:开机自启脚本
-/usr/local/tomcat/bin/startup.sh  #启动tomcat
+/usr/local/tomcat/bin/startup.sh start #启动tomcat
 ```
 
 **方法一** 
@@ -93,6 +93,26 @@ chmod +x  /etc/rc.d/init.d/autostart.sh
 cd /etc/rc.d/init.d
 chkconfig --add autostart.sh
 chkconfig autostart.sh on
+```
+
+我的启动脚本：
+
+```shell
+[lion@localhost ~]$ cat /opt/script/autostart.sh 
+#!/bin/bash
+#description:autoScript
+#tracker
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+#storage
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart 
+#zookeeper
+/home/lion/soft/zookeeper-3.4.12/bin/zkServer.sh start
+#redis
+/home/lion/soft/redis-stable/bin/redis-server  /home/lion/soft/redis-stable/bin/redis.conf
+#solr
+/home/lion/soft/solr-7.3.1/bin/solr start
+#tomcat
+/home/lion/soft/apache-tomcat-8.5.31/bin/startup.sh start
 ```
 
 
@@ -453,3 +473,18 @@ tracker_server=192.168.101.3:22122
 /usr/bin/fdfs_test /etc/fdfs/client.conf upload /home/tomcat.png
 ```
 
+## 11、ActiveMQ的安装
+
+1、下载
+
+2、解压
+
+3、运行
+
+```shell
+[lion@localhost bin]$ ./activemq start
+```
+
+4、访问
+
+`http://192.168.1.127:8161/`
