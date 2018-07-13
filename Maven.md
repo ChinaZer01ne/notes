@@ -452,3 +452,14 @@ e）从私服下载jar
 2、进入target目录，里面有个original文件
 
 3、执行`mvn install:install-file -Dfile=xxx.original -DgroupId="your groupId" -DartifactId="your artifactId" -Dversion="your version" -Dpackaging=jar`
+
+## 15.遇到的问题
+
+1、依赖jar包的时候没有触发传递依赖。
+
+​	我对接阿里大于的时候，引入`com.aliyun:aliyun-java-sdk-core:3.7.1`的时候，应该会把他需要的包同时依赖过来，但是没有。
+
+​	原因：本地仓库里的``com.aliyun:aliyun-java-sdk-core:3.7.1`没有把pom给下下来（阿里云的私服上没有给出pom），本地下下来的是lastupdated后缀的。
+
+​	解决：从down下来的jar中把pom文件内容拷贝给了本地仓库的pom文件。
+

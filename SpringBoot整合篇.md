@@ -663,6 +663,9 @@ public void sendMessage(Destination destination, String message){//Destination�
 第一种方式：（简单）
 
 ```java
+/**
+ *	JmsListener注解默认只接收queue消息,如果要接收topic消息,需要设置containerFactory
+ */
 @JmsListener(destination = "test-queue")	//队列名称
 public void testJmsTemplateConsumer(String text){
     System.out.println(text);
@@ -683,6 +686,25 @@ public void testJmsTemplateConsumer(){
         }
     };
     System.out.println(jmsTemplate.receive(destination).getPayload());
+}
+```
+
+
+
+**注意**：**如果采用发布订阅模式（Topic），JmsListener注解默认只接收queue消息,如果要接收topic消息,需要设置containerFactory属性**
+
+```java
+@JmsListener(destination = "${topicDestination}", containerFactory = "jmsListenerContainerFactory")
+```
+
+```java
+@Bean
+public JmsListenerContainerFactory jmsListenerContainerFactory(ConnectionFactory activeMQConnectionFactory){
+   DefaultJmsListenerContainerFactory topicListenerContainer = new DefaultJmsListenerContainerFactory();
+   topicListenerContainer.setPubSubDomain(true);
+   topicListenerContainer.setConnectionFactory(activeMQConnectionFactory);
+   return topicListenerContainer;
+
 }
 ```
 
