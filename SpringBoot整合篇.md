@@ -610,6 +610,19 @@ Found multiple @SpringBootConfiguration annotated classes
 
 测试的时候，要把所有服务都停掉。
 
+## SpringTask定时任务
+
+```java
+@EnableScheduling	//开启任务调度扫描
+@Component
+public class SeckillTask {
+    @Scheduled(cron = "* * * * * ?")	//每秒执行一次
+    public void refreshSeckillGoods(){
+        System.out.println("执行了任务调度" + new Date());
+    }
+}
+```
+
 ## SpringBoot整合ActiveMQ
 
 1、引入依赖
