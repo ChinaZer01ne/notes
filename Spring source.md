@@ -1,6 +1,6 @@
 # Spring Source
 
-## 启动过程分析
+## 启动过程分析（定位、加载、注册）
 
 第一步，我们肯定要从 ClassPathXmlApplicationContext 的构造方法说起。 
 
@@ -11,9 +11,12 @@ public static void main(String[] args){
 }
 ```
 
-创建ClassPathXmlApplicationContext的时候会调用父类的构造器。
+创建ClassPathXmlApplicationContext的时候会调用静态代码块以及父类的构造器之类的。
+
+静态代码块：
 
 ```java
+//AbstractApplicationContext.java 153
 //整个容器初始化只执行一次
 static {
    // Eagerly load the ContextClosedEvent class to avoid weird classloader issues
@@ -23,14 +26,16 @@ static {
 }
 ```
 
-继续
+构造方法：
+
+
 
 ```java
 //ClassPathXmlApplicationContext.java
 public ClassPathXmlApplicationContext(
       String[] configLocations, boolean refresh, @Nullable ApplicationContext parent)
       throws BeansException {
-
+	//调用AbstractApplicationContext的构造方法，主要是设置环境和资源匹配解析器
    super(parent);
    // 根据提供的路径，处理成配置文件数组
    setConfigLocations(configLocations);
@@ -40,6 +45,42 @@ public ClassPathXmlApplicationContext(
    }
 }
 ```
+
+
+
+```java
+//AbstractApplicationContext.java
+public AbstractApplicationContext(@Nullable ApplicationContext parent) {
+   //设置资源匹配解析器 
+    this();
+    //设置环境（此时parent为null）
+   setParent(parent);
+}
+public AbstractApplicationContext() {
+    //设置资源匹配解析器 
+	this.resourcePatternResolver = getResourcePatternResolver();
+}
+```
+
+创建环境的操作
+
+```java
+//AbstractApplicationContext.java
+@Override
+public ConfigurableEnvironment getEnvironment() {
+    if (this.environment == null) {
+        this.environment = createEnvironment();
+    }
+    return this.environment;
+}
+//AbstractApplicationContext
+protected ConfigurableEnvironment createEnvironment() {
+    //创建了一个标准环境（此时会执行父类的构造方法，执行了一系列操作，主要是一些解析占位符操作）
+    return new StandardEnvironment();
+}
+```
+
+创建环境完成后，就将传入的本地文件的路径解析成Resouce。
 
  setConfigLocations(configLocations)是如何处理配置文件的？
 
@@ -67,30 +108,12 @@ protected String resolvePath(String path) {
 }
 ```
 
-创建环境的操作
-
-```java
-//AbstractApplicationContext.java
-@Override
-public ConfigurableEnvironment getEnvironment() {
-    if (this.environment == null) {
-        this.environment = createEnvironment();
-    }
-    return this.environment;
-}
-//AbstractApplicationContext
-protected ConfigurableEnvironment createEnvironment() {
-    //创建了一个标准环境
-    return new StandardEnvironment();
-}
-```
-
 解析的操作
 
 ```java
 //AbstractEnvironment.java
 public String resolveRequiredPlaceholders(String text) throws IllegalArgumentException {
-    //propertyResolver对象在创建环境的时候已经创建
+    //propertyResolver对象在创建环境的时候 创建出来的
     return this.propertyResolver.resolveRequiredPlaceholders(text);
 }
 //AbstractPropertyResolver
@@ -105,7 +128,17 @@ public String resolveRequiredPlaceholders(String text) throws IllegalArgumentExc
 ...
 ```
 
-刷新容器
+这个过程有一个解析占位符的功能。
+
+Spring加载的时候将系统变量等一些参数放到了`MapPropertySource`中，可以通过${key}的方式取到，比如：
+
+`context = new ClassPathXmlApplicationContext(new String[] { "classpath*:spring/${java.vm.version}/propertyEditor.xml" }); `虽然不太清楚这个的意义，哈哈😂
+
+
+
+前戏完成了，到了重要的阶段。
+
+刷新容器。
 
 ```java
 ////AbstractApplicationContext.java
