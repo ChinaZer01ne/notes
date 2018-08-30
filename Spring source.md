@@ -41,7 +41,7 @@ public ClassPathXmlApplicationContext(
    setConfigLocations(configLocations);
     //刷新容器
    if (refresh) {
-      refresh();
+      refresh(); //继承自父类AbstractApplicationContext中的方法
    }
 }
 ```
