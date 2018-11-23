@@ -137,9 +137,9 @@ eureka.client.service-url.defaultZone=http://localhost:8080/eureka/,http://local
 
 
 
-1、激活Hystrix
+## 激活Hystrix
 
-在启动类上添加`@EnableHystrix`注解
+在启动类上添加`@EnableHystrix`注解，这仅仅是netflix的内容
 
 2、
 
@@ -191,4 +191,20 @@ public class FutureDemo {
     }
 }
 ```
+
+
+
+## 激活熔断保护（包含Hystrix）
+
+启动类添加`@EnableCircuitBreaker`这是SpringCloud的内容，包含了`@EnableHystrix`（这是netflix的内容）
+
+
+
+# Feign
+
+1、在启动类下添加`@EnableFeignClients`注解，开启
+
+
+
+# Feign整合Ribbn
 

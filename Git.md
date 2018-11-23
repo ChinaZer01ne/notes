@@ -55,3 +55,25 @@ add：进入stage
 commit：进入本地仓库
 
 push：到远端仓库
+
+---
+
+* git status：查看当前仓库状态。会提示那些文件发生修改，哪些内容需要add&commit。
+
+* git clone [地址]：从远程仓库克隆
+
+* git checkout -d [分支名]：删除分支
+
+* git remote：查看远程仓库的信息
+
+* git checkout -b [分支名]：
+
+> 创建新分支，并且切换到该分支，等价于： 
+> `git brach [分支名]`创建分支 
+> `git checkout [分支名]`切换分支 
+> 如果此时有未提交的修改，是无法切换分支的，这时候就可以用`git stash`进行暂存
+
+* git branch
+
+> 查看分支 
+> `-r`显示所有远程分支，`-a`显示所有本地分支和远程分支
