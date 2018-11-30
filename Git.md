@@ -77,3 +77,12 @@ push：到远端仓库
 
 > 查看分支 
 > `-r`显示所有远程分支，`-a`显示所有本地分支和远程分支
+
+
+
+git remote add origin https://github.com/ChinaZer01ne/utils.git：关联远程仓库
+
+git branch --set-upstream-to=origin/<branch> master：将本地的分支和远程分支进行关联了
+
+git pull origin master –allow-unrelated-histories：合并两个独立的仓库
+
