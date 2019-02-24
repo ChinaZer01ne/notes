@@ -112,7 +112,7 @@ init_connect='SET NAMES utf8'
 
 
 
-## 主从复制
+## 集群之主从复制
 
 ### master服务器配置
 
@@ -124,7 +124,7 @@ init_connect='SET NAMES utf8'
 
 ```shell
 [mysqld]
-#启用二进制日志
+#启用二进制日志（文件名类似mysql-bin000001.log）
 log-bin=mysql-bin
 #服务器唯一ID，一般取IP最后一段
 server-id=63
@@ -136,24 +136,24 @@ server-id=63
 systemctl restart mysqld.service
 ```
 
-#### 第三步：建立帐户并授权slave
+#### 第三步：在主服务器上建立帐户并授权slave
 
-```shell
-mysql>GRANT FILE ON *.* TO 'backup'@'%' IDENTIFIED BY '123456';
-mysql>GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'backup'@'%' identified by '123456'; 
+```mysql
+mysql>GRANT FILE ON *.* TO 'username'@'%' IDENTIFIED BY 'user-password';
+mysql>GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'username'@'%' identified by 'user-password'; 
 ```
 
 #一般不用root帐号，“%”表示所有客户端都可能连，只要帐号，密码正确，此处可用具体客户端IP代替，如192.168.145.226，加强安全。
 
 刷新权限
 
-```shell
+```mysql
 mysql> FLUSH PRIVILEGES;
 ```
 
 查看mysql现在有哪些用户
 
-```shell
+```mysql
 mysql>select user,host from mysql.user;
 ```
 
@@ -191,21 +191,45 @@ Fatal error: The slave I/O thread stops because master and slave have equal MySQ
 
 #### 第三步：配置从服务器
 
-```shell
-mysql>change master to master_host='192.168.25.64',master_port=3306,master_user='backup',master_password='123456',master_log_file='mysql-bin.000001',master_log_pos=120 
+```mysql
+mysql>change master to master_host='192.168.1.63',master_port=3306,master_user='root',master_password='root',master_log_file='mysql-bin.000001',master_log_pos=120 
 ```
 
 注意语句中间不要断开，master_port为mysql服务器端口号(无引号)，master_user为执行同步操作的数据库账户，“120”无单引号(此处的120就是show master status 中看到的position的值，这里的mysql-bin.000001就是file对应的值)。
 
+> 注：
+>
+> **从服务器可以设置为为只读**
+> 在从服务器上设置：
+> read_only = ON 
+>
+> 或者
+>
+> ```mysql
+> mysql> set global read_only=1; #1是只读，0是读写
+> ```
+>
+> 注意:set global read_only=1 对拥有super权限的账号是不生效的，所以在授权账号的时候尽量避免添加super权限
+>
+> 然后
+>
+> ```mysql
+> mysql>FLUSH TABLES WITH READ LOCK;
+> ```
+
+
+
 #### 第四步：启动从服务器复制功能
 
-```shell
+```mysql
 mysql>start slave; 
 ```
 
 ####  第五步：检查从服务器复制功能状态：
 
-mysql> show slave status
+```mysql
+ mysql> show slave status
+```
 
 ```te
 ……………………(省略部分)
@@ -215,6 +239,28 @@ Slave_SQL_Running: Yes //此状态必须YES
 ```
 
 注：Slave_IO及Slave_SQL进程必须正常运行，即YES状态，否则都是错误的状态(如：其中一个NO均属错误)。
+
+#### 注意：主从之间的防火墙需要配置
+
+## 集群之读写分离
+
+#### MySQL-Proxy下载
+
+https://downloads.mysql.com/archives/proxy/
+
+#### MySQL-Proxy安装
+
+#### MySQL-Proxy配置
+
+#### 创建mysql-proxy.cnf文件
+
+#### 修改rw-splitting.lua脚本
+
+#### MySQL-Proxy启动域测试
+
+## 分库分表之MyCat实现
+
+
 
 ## Mysql中遇到的坑
 
