@@ -100,14 +100,6 @@ character_set_server=utf8
 init_connect='SET NAMES utf8'
 ```
 
-
-
-
-
-
-
-
-
 ## 索引
 
 
@@ -122,9 +114,107 @@ init_connect='SET NAMES utf8'
 
 ## 主从复制
 
+### master服务器配置
 
+#### 第一步：修改my.cnf文件：
 
+默认安装，my.cnf在`/etc/`下
 
+在[mysqld]段下添加：
+
+```shell
+[mysqld]
+#启用二进制日志
+log-bin=mysql-bin
+#服务器唯一ID，一般取IP最后一段
+server-id=63
+```
+
+#### 第二步：重启mysql服务
+
+```shell
+systemctl restart mysqld.service
+```
+
+#### 第三步：建立帐户并授权slave
+
+```shell
+mysql>GRANT FILE ON *.* TO 'backup'@'%' IDENTIFIED BY '123456';
+mysql>GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'backup'@'%' identified by '123456'; 
+```
+
+#一般不用root帐号，“%”表示所有客户端都可能连，只要帐号，密码正确，此处可用具体客户端IP代替，如192.168.145.226，加强安全。
+
+刷新权限
+
+```shell
+mysql> FLUSH PRIVILEGES;
+```
+
+查看mysql现在有哪些用户
+
+```shell
+mysql>select user,host from mysql.user;
+```
+
+####  第四步：查询master的状态
+
+```shell
+show master status
+```
+
+### slave服务器配置
+
+#### 第一步：修改my.cnf文件
+
+在[mysqld]段下添加：
+
+```shell
+[mysqld]
+#服务器唯一ID，一般取IP最后一段
+server-id=64
+```
+
+####  第二步：删除UUID文件
+
+错误处理：
+如果出现此错误：
+
+```shell
+Fatal error: The slave I/O thread stops because master and slave have equal MySQL server UUIDs; these UUIDs must be different for replication to work.
+```
+
+因为是mysql是克隆的系统所以mysql的uuid是一样的，所以需要修改。
+
+解决方法：
+删除/var/lib/mysql/auto.cnf文件，重新启动服务。
+
+#### 第三步：配置从服务器
+
+```shell
+mysql>change master to master_host='192.168.25.64',master_port=3306,master_user='backup',master_password='123456',master_log_file='mysql-bin.000001',master_log_pos=120 
+```
+
+注意语句中间不要断开，master_port为mysql服务器端口号(无引号)，master_user为执行同步操作的数据库账户，“120”无单引号(此处的120就是show master status 中看到的position的值，这里的mysql-bin.000001就是file对应的值)。
+
+#### 第四步：启动从服务器复制功能
+
+```shell
+mysql>start slave; 
+```
+
+####  第五步：检查从服务器复制功能状态：
+
+mysql> show slave status
+
+```te
+……………………(省略部分)
+Slave_IO_Running: Yes //此状态必须YES
+Slave_SQL_Running: Yes //此状态必须YES
+……………………(省略部分)
+```
+
+注：Slave_IO及Slave_SQL进程必须正常运行，即YES状态，否则都是错误的状态(如：其中一个NO均属错误)。
 
 ## Mysql中遇到的坑
 
