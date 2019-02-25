@@ -143,7 +143,7 @@ mysql>GRANT FILE ON *.* TO 'username'@'%' IDENTIFIED BY 'user-password';
 mysql>GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'username'@'%' identified by 'user-password'; 
 ```
 
-#一般不用root帐号，“%”表示所有客户端都可能连，只要帐号，密码正确，此处可用具体客户端IP代替，如192.168.145.226，加强安全。
+一般不用root帐号，“%”表示所有客户端都可能连，只要帐号，密码正确，此处可用具体客户端IP代替，如192.168.145.226，加强安全。
 
 刷新权限
 
@@ -160,8 +160,18 @@ mysql>select user,host from mysql.user;
 ####  第四步：查询master的状态
 
 ```shell
-show master status
+show master status;
 ```
+
+```tex
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000004 |      879 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+```
+
+
 
 ### slave服务器配置
 
@@ -228,7 +238,7 @@ mysql>start slave;
 ####  第五步：检查从服务器复制功能状态：
 
 ```mysql
- mysql> show slave status
+ mysql> show slave status;
 ```
 
 ```te
@@ -247,6 +257,10 @@ Slave_SQL_Running: Yes //此状态必须YES
 #### MySQL-Proxy下载
 
 https://downloads.mysql.com/archives/proxy/
+
+```shell
+wget https://downloads.mysql.com/archives/get/file/mysql-proxy-0.8.5-linux-el6-x86-64bit.tar.gz
+```
 
 #### MySQL-Proxy安装
 
