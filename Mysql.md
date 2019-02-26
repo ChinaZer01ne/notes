@@ -433,7 +433,7 @@ cd mycat/bin
 
 #### MyCat分片图
 
-![img](C:/Users/Ninee/Desktop/notes/images/mysql/Mycat%E5%88%86%E7%89%87%E5%9B%BE.png)
+![img](images/mysql/Mycat分片图.png)
 
 1、**Schema**：逻辑库，与MySQL中的Database（数据库）对应，一个逻辑库中定义了所包括的Table。
 
@@ -472,11 +472,13 @@ lower_case_table_names= 1
         <!-- name属性是数据库的表名-->
         <!-- rule属性是分片的规则，在rule.xml中指定,每一个配置规则在mycat/conf目录下都有对应的文件-->
         <!--分库分表-->
+        <!--
+			一个dataNode属性配置了多个dataNode表示分表到多个dataNode上。
+			不同的表配置到不同的dataNode上表示不同表的分库处理
+		-->
 		<table name="item" dataNode="dn1,dn2,dn3" rule="mod-long" />
-        
-		<!--<table name="item" dataNode="dn1" rule="auto-sharding-long" />
-       		<table name="item" dataNode="dn2" rule="auto-sharding-long" />
-       		<table name="item" dataNode="dn3" rule="auto-sharding-long" />-->
+		<table name="user" dataNode="dn4" rule="auto-sharding-long" />
+       		
 		<table name="TB_USER" primaryKey="ID" type="global" dataNode="dn1,dn2" />
 	</schema>
     <!-- 分片配置 -->
@@ -484,7 +486,7 @@ lower_case_table_names= 1
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
 	<dataNode name="dn3" dataHost="localhost1" database="db3" />
-    <!--<dataNode name="dn4" dataHost="localhost2" database="db3" />-->
+    <!--<dataNode name="dn4" dataHost="localhost2" database="db4" />-->
      <!-- 物理数据库配置 -->
     <!--可以配置多个dataHost-->
 	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
