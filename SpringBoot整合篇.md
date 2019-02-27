@@ -378,12 +378,44 @@ spring:
 
 3.自动注入
 
+首先在SpringBoot启动类中配置`SolrTemplate`
+
+```java
+@Autowired
+private SolrClient solrClient;
+@Bean
+public SolrTemplate solrTemplate(){
+    return new SolrTemplate(solrClient);
+}
+```
+
+使用
+
 ```java
 @Autowired
 private SolrTemplate solrTemplate;
 ```
 
 4.基本操作
+
+注意：实体类必须加入对应注解（`@Field`，`@Dynamic`），否则无法索引储存
+
+```java
+@Field
+private Long id;
+@Field
+private String title;
+@Field
+private Long goodsId;
+@Field
+private String category;
+@Field
+private String brand;
+@Field
+private String seller;
+```
+
+添加
 
 ```java
 //添加
@@ -400,6 +432,8 @@ solrTemplate.saveBean("core1",tbItem);
 solrTemplate.commit("core1");
 ```
 
+根据id获取
+
 ```java
 //根据id获取
 Optional<TbItem> optional = solrTemplate.getById("core1", 1L, TbItem.class);
@@ -410,11 +444,15 @@ if (optional.isPresent()){
 
 ```
 
+删除记录
+
 ```java
 //删除记录
 solrTemplate.deleteByIds("core1",String.valueOf(1L));
 solrTemplate.commit("core1");
 ```
+
+添加集合
 
 ```java
 //添加集合
@@ -434,6 +472,8 @@ solrTemplate.saveBeans("core1",list);
 solrTemplate.commit("core1");
 ```
 
+执行查询
+
 ```java
 //执行查询
 Query query = new SimpleQuery("*:*");
@@ -446,6 +486,8 @@ for (TbItem tbItem : page.getContent()){
 System.out.println(page.getTotalElements());	//总记录数
 System.out.println(page.getTotalPages());		//总页数
 ```
+
+条件查询
 
 ```java
 //条件查询
@@ -462,6 +504,8 @@ for (TbItem tbItem : page.getContent()){
 System.out.println(page.getTotalElements());
 System.out.println(page.getTotalPages());
 ```
+
+删除所有记录
 
 ```java
 //删除所有记录
