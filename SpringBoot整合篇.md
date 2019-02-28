@@ -558,26 +558,7 @@ solrTemplate.delete("core1",query);
 solrTemplate.commit("core1");
 ```
 
-### 5、整合
-
-```yaml
-spring:
-  data:
-    solr:
-      host: http://192.168.1.127:8983/solr
-      repositories:
-        enabled: false
-```
-
-```java
-
-```
-
-```java
-
-```
-
-### 6、动态域的添加
+###  5、动态域的添加
 
 ```java
 @Dynamic
@@ -588,6 +569,53 @@ private Map<String, String> specMap;	//>必须写泛型
 注意：Map<String, String>必须写泛型，否则报如下异常:
 
 `org.springframework.data.solr.UncategorizedSolrException: Can't resolve required map value type for interface java.util.Map!`
+
+#### 6、定时更新索引
+
+##### 在spring配置文件中配置地址
+
+```properties
+# solr定时更新地址
+# command=delta-import 增量更新 command=full-import 全量更新
+# entity=document表示要更新的entity的name,但是注意此名称非java中实体类的名称，而是solr_core中data-config.xml中的entity的name
+# clean=false  表示不清空solr中数据,true表示清空数据。全量更新操作的时候设为true，增量更新的时候设为false
+# commit=true  提交必须是true
+# 地址可以从网页端抓包看到
+SOLR_DELTA_PARAM=/core1/dataimport?command=delta-import&entity=person&clean=false&commit=true
+SOLR_FULL_PARAM=/core1/dataimport?command=full-import&entity=person&clean=true&commit=true&core=core1&name=dataimport&indent=on
+
+```
+
+##### 添加定时任务
+
+```java
+//注入全量更新地址或者增量更新地址
+@Value("${SOLR_DELTA_PARAM}")
+private String SOLR_DELTA_PARAM;
+//设置定时任务
+@Scheduled(cron = "0/10 * * * * ? ")
+public void scheduled(){
+    //System.out.println(new Date());
+    //创建SolrQuery，设置请求
+    SolrQuery solrQuery = new SolrQuery();
+    solrQuery.setRequestHandler(SOLR_DELTA_PARAM);
+    try {
+        //发送请求
+        solrClient.query(solrQuery);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+```
+
+**注意：需要在配置类上添加注解`@EnableScheduling`来开启定时任务**
+
+```java
+@EnableScheduling
+public class GithubApplication {
+    ....
+}
+```
 
 ## SpringBoot整合FreeMarker
 
