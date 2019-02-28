@@ -356,7 +356,7 @@ redisTemplate.boundHashOps("hashName").keys()
 
 ## Springboot整合SpringDataSolr
 
-1、引入依赖
+### 1、引入依赖
 
 ```xml
 <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-solr -->
@@ -367,16 +367,20 @@ redisTemplate.boundHashOps("hashName").keys()
 </dependency>
 ```
 
-2、配置yml
+### 2、配置yml
 
 ```yaml
 spring:
   data:
     solr:
       host: http://192.168.1.127:8983/solr
+      repositories:
+       enabled: false
 ```
 
-3.自动注入
+### 3.自动注入
+
+#### 第一种方式：
 
 首先在SpringBoot启动类中配置`SolrTemplate`
 
@@ -396,9 +400,49 @@ public SolrTemplate solrTemplate(){
 private SolrTemplate solrTemplate;
 ```
 
-4.基本操作
+#### 第二种方式：
 
-注意：实体类必须加入对应注解（`@Field`，`@Dynamic`），否则无法索引储存
+```java
+@Configuration
+public class SolrConfig {
+
+    @Value("${spring.data.solr.host}")
+    String solrURL;
+
+    @Bean
+    public SolrClient solrClient() {
+    return new HttpSolrClient.Builder(solrURL).build();
+    }
+
+    @Bean
+    public SolrTemplate solrTemplate(SolrClient client) throws Exception {
+    return new SolrTemplate(client);
+    }
+}
+```
+
+#### 导入测试
+
+```java
+@Autowired
+private TbItemMapper tbItemMapper;
+@Autowired
+private SolrTemplate solrTemplate;
+public void importTbItemData(){
+    TbItemExample example = new TbItemExample();
+    TbItemExample.Criteria criteria = example.createCriteria();
+    criteria.andStatusEqualTo("1");//审核成功的才导入
+    List<TbItem> list = tbItemMapper.selectByExample(example);
+    solrTemplate.saveBeans("core1",list);
+    solrTemplate.commit("core1");
+}
+```
+
+
+
+### 4.基本操作
+
+注意：实体类必须加入对应注解（`@Field`，动态域需要在`@Field`多加一个`@Dynamic`），否则无法索引储存
 
 ```java
 @Field
@@ -514,7 +558,7 @@ solrTemplate.delete("core1",query);
 solrTemplate.commit("core1");
 ```
 
-5、整合
+### 5、整合
 
 ```yaml
 spring:
@@ -526,40 +570,14 @@ spring:
 ```
 
 ```java
-@Configuration
-public class SolrConfig {
 
-@Value("${spring.data.solr.host}")
-String solrURL;
-    
-@Bean
-public SolrClient solrClient() {
-return new HttpSolrClient.Builder(solrURL).build();
-}
-
-@Bean
-public SolrTemplate solrTemplate(SolrClient client) throws Exception {
-return new SolrTemplate(client);
-}
-}
 ```
 
 ```java
-@Autowired
-private TbItemMapper tbItemMapper;
-@Autowired
-private SolrTemplate solrTemplate;
-public void importTbItemData(){
-    TbItemExample example = new TbItemExample();
-    TbItemExample.Criteria criteria = example.createCriteria();
-    criteria.andStatusEqualTo("1");//审核成功的才导入
-    List<TbItem> list = tbItemMapper.selectByExample(example);
-    solrTemplate.saveBeans("core1",list);
-    solrTemplate.commit("core1");
-}
+
 ```
 
-6、动态域的添加
+### 6、动态域的添加
 
 ```java
 @Dynamic
