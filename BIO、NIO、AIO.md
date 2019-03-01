@@ -6,7 +6,7 @@
 
 同步阻塞式IO，服务器实现模式为一个连接一个线程（一个Socket连接对应一个线程），即客户端有连接请求（Socket连接建立）时服务器端就需要启动一个线程进行处理，如果这个连接不做任何事情会造成不必要的线程开销，当然可以通过线程池机制改善。 
 
-[BIO demo](https://github.com/ChinaZer01ne/notes/demo/io/bio)
+[BIO demo](https://github.com/ChinaZer01ne/notes/tree/master/demo/io/bio)
 
 
 
@@ -763,7 +763,7 @@ Selector 用于实现非阻塞 IO，这里仅仅介绍接口使用，后续请�
 
 [这篇文章还是不错的](https://javadoop.com/post/java-nio)
 
-[NIO demo](https://github.com/ChinaZer01ne/notes/demo/io/nio)
+[NIO demo](https://github.com/ChinaZer01ne/notes/tree/master/demo/io/nio)
 
 ## AIO（异步非阻塞IO）
 
