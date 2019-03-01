@@ -166,7 +166,7 @@ NIO的读写是依靠缓冲区（Buffer）进行的。
 
 一个 Buffer 本质上是内存中的一块，我们可以将数据写入这块内存，之后从这块内存获取数据。
 
-![6](images\nio\buffer体系.png)
+![6](images/nio/buffer体系.png)
 
 其实核心是最后的 **ByteBuffer**，前面的一大串类只是包装了一下它而已，我们使用最多的通常也是 ByteBuffer。
 
@@ -182,7 +182,7 @@ MappedByteBuffer 用于实现内存映射文件。
 
 
 
-![5](images\nio\buffer中position、limit、capacity介绍.png)
+![5](images/nio/buffer中position、limit、capacity介绍.png)
 
 最好理解的当然是 capacity，它代表这个缓冲区的容量，一旦设定就不可以更改。比如 capacity 为 1024 的 IntBuffer，代表其一次可以存放 1024 个 int 类型的值。一旦 Buffer 的容量达到 capacity，需要清空 Buffer，才能重新写入值。
 
@@ -196,7 +196,7 @@ position 和 limit 是变化的，我们分别看下读和写操作下，它们�
 
 
 
-![7](images\nio\buffer中position、limit、capacity关系介绍.png)
+![7](images/nio/buffer中position、limit、capacity关系介绍.png)
 
 
 
