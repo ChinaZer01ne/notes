@@ -23,6 +23,43 @@
 --http-scgi-temp-path=/var/temp/nginx/scgi	#设定http scgi临时文件路径
 ```
 
+> 可能出现的错误：
+>
+> 1、
+>
+> ```shell
+> ./configure: error: the HTTP rewrite module requires the PCRE library.
+> You can either disable the module by using --without-http_rewrite_module
+> option, or install the PCRE library into the system, or build the PCRE library
+> statically from the source with nginx by using --with-pcre=<path> option.
+> ```
+>
+> 解决方法：
+>
+> ```shell
+> yum -y install pcre-devel
+> ```
+>
+> 2、
+>
+> ```shell
+> ./configure: error: the HTTP gzip module requires the zlib library.
+> You can either disable the module by using --without-http_gzip_module
+> option, or install the zlib library into the system, or build the zlib library
+> statically from the source with nginx by using --with-zlib=<path> option.
+> 
+> ```
+>
+> 解决方法：
+>
+> ```shell
+> yum install -y zlib-devel
+> ```
+>
+>
+
+
+
 4、编译`make`
 
 5、安装`make install`
@@ -39,15 +76,181 @@
 
 输入命令启动Nginx
 
-`./nginx start`
+`./nginx `
+
+平滑重启
+
+`./nginx -s reload`
 
 启动后查看进程
 
 `ps aux|grep nginxs`
 
+查看nginx的其他操作
+
+`./nginx -h`
+
+> 创建全局命令,只需要创建软连接到`$PATH`的目录下(`echo $PATH`查看)
+>
+> `ln -n /usr/local/nginx/sbin/nginx /usr/local/sbin/`
+
 ## 配置
 
-修改安装目录下/conf/nginx.conf
+修改安装目录下`/conf/nginx.conf`
+
+```perl
+# 运行用户
+#user  nobody;
+# nginx进程,一般设置为和cpu核数一样
+worker_processes  1;
+# 错误日志存放目录 
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+# 进程pid存放位置
+#pid        logs/nginx.pid;
+# 工作模式及连接数上限
+events {
+	# 单个后台worker process进程的最大并发链接数
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;	#文件扩展名与类型映射表
+    default_type  application/octet-stream;	#默认文件类型
+
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;	  #开启高效传输模式
+    #激活tcp_nopush参数可以允许把httpresponse header和文件的开始放在一个文件里发布，积极的作用是减少网络报文段的数量
+    #tcp_nopush     on;	
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;	# 连接超时时间，单位是秒
+
+    #gzip  on;	# 开启gzip压缩功能
+	
+	# 反向代理负载均衡设定部分
+    # upstream表示负载服务器池，定义名字为backend_server的服务器池
+    # upstream backend_server {
+    ##   ip_hash; # 可以指定负载均衡策略
+    #    server   10.254.244.20:81 weight=1 max_fails=2 fail_timeout=30s;
+    #    server   10.254.242.40:81 weight=1 max_fails=2 fail_timeout=30s;
+    #    server   10.254.245.19:81 weight=1 max_fails=2 fail_timeout=30s;
+    #    server   10.254.243.39:81 weight=1 max_fails=2 fail_timeout=30s;
+      #设置由 fail_timeout 定义的时间段内连接该主机的失败次数，以此来断定 fail_timeout 定义的时间段内该主机是否可用。默认情况下这个数值设置为 1。零值的话禁用这个数量的尝试。
+    #设置在指定时间内连接到主机的失败次数，超过该次数该主机被认为不可用。
+    #这里是在30s内尝试2次失败即认为主机不可用！
+    #  }
+    
+    #基于域名的虚拟主机
+    server {
+   		#监听端口
+        listen       80;
+        server_name  localhost;
+
+        #charset koi8-r; #gbk,utf-8,gb2312,gb18030 可以实现多种编码识别
+
+        #access_log  logs/host.access.log  main; #日志格式及日志存放路径
+		# 当url访问/的时候，找的是html/index.html或htm文件（nginx主目录）
+		# location定位是唯一的，不要出现交叉，否则会出现404
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+        # 当url访问/xxx/lion/1.html的时候，找的是 /home/abc/lion/1.html文件
+		location /xxx {
+            root   /home/abc;
+            index  index.html;
+        }
+        location ~.*\.(jpg|png|css|js)$ {
+            root   /home/static;
+            expires      30d; #客户端缓存上述js,css数据30天
+        }
+        #location ~.*\.(xls)$ {
+        #	 default_type  application/octet-stream;
+        #	 可以配置文件下载
+        #    add_header Content_disposition ""attachment;
+        #    root   /home/file;
+        #}
+        # 搭配upstream实现负载均衡
+        #location / { 
+        #    root  html; 
+        #    index  index.html index.htm; 
+        #    proxy_pass http://backend_server; 
+		#}	
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        # 错误跳转页面
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }
+  # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
 
 
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
 
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+}
+```
+
+[[Nginx配置upstream实现负载均衡](https://www.cnblogs.com/wzjhoutai/p/6932007.html)]

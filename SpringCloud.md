@@ -8,7 +8,7 @@ Spring -----> Spring Boot ----->Spring Cloud ----->微服务
 
 
 
-# 服务治理方案
+## 服务治理方案
 
 阿里系：dubbo + ZooKeeper
 
@@ -16,9 +16,9 @@ SpringCloud：Spring全家桶系列
 
 
 
-#分布式系统服务发现
+##分布式系统服务发现
 
-## 服务发现
+### 服务发现
 
 1.服务注册表
 
@@ -26,25 +26,35 @@ SpringCloud：Spring全家桶系列
 
 3.健康检查
 
-## 服务发现的方式
+### 服务发现的方式
 
 客户端发现
 
 服务端发现，需要一个代理
 
-# 异构
+
+
+## 异构
 
 每个服务可以是不同语言，不同数据库
 
-#REST or RPC?
-
-#微服务和SOA差别是一个ESB？
 
 
+## REST or RPC?
 
-# Eureka
+dubbo：基于RPC
 
-## 注册中心
+SpringCloud：给予Restful
+
+
+
+##微服务和SOA差别是一个ESB？
+
+
+
+## Eureka
+
+### 注册中心
 
 1、启动主类上加`@EnableEurekaServer`注解，表示这是Eureka服务端
 
@@ -110,7 +120,7 @@ eureka.client.serviceUrl.defaultZone=http://eureka-2:8080/eureka/
 #eureka.server.eviction-interval-timer-in-ms=15000
 ```
 
-## 客户端
+### 客户端
 
 1、启动主类加`@EurekaClientDiscover`注解，表示这是一个客户端
 
@@ -133,11 +143,11 @@ eureka.client.service-url.defaultZone=http://localhost:8080/eureka/,http://local
 
 
 
-# Hystrix
+## Hystrix
 
 
 
-## 激活Hystrix
+### 激活Hystrix
 
 在启动类上添加`@EnableHystrix`注解，这仅仅是netflix的内容
 
@@ -194,17 +204,26 @@ public class FutureDemo {
 
 
 
-## 激活熔断保护（包含Hystrix）
+### 激活熔断保护（包含Hystrix）
 
 启动类添加`@EnableCircuitBreaker`这是SpringCloud的内容，包含了`@EnableHystrix`（这是netflix的内容）
 
 
 
-# Feign
+## Feign
 
 1、在启动类下添加`@EnableFeignClients`注解，开启
 
 
 
-# Feign整合Ribbn
+### Feign整合Ribbn
 
+
+
+## 学习网站
+
+[官网](https://spring.io/projects/spring-cloud)
+
+[Spring Cloud中文网](https://springcloud.cc/)
+
+[Spring Cloud中国社区](http://www.springcloud.cn/)
