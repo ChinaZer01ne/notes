@@ -2,7 +2,7 @@
 
 ## dubbo架构图
 
-![dubbo-architecture](C:\Users\Lion\Desktop\资料\images\dubbo\dubbo-architecture.png)
+![dubbo-architecture](/images/dubbo/dubbo-architecture.png)
 
 ## Springboot整合dubbo
 
@@ -60,7 +60,24 @@ dubbo:
   protocol:
     name: dubbo
     port: 20881 # 发布服务的端口
-
+#连接zookeeper集群配置
+#server.port=9004
+#
+#
+#spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+#spring.datasource.username=root
+#spring.datasource.password=root
+#spring.datasource.url=jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=GMT
+#spring.datasource.type= com.alibaba.druid.pool.DruidDataSource
+#
+#dubbo.application.name=manager-service
+#
+#dubbo.registry.address=192.168.1.121:2181,192.168.1.121:2182,192.168.1.121:2183
+#dubbo.registry.protocol=zookeeper
+#dubbo.protocol.name=dubbo
+## 发布服务的端口
+#dubbo.protocol.port=20881
+#dubbo.scan.base-packages=com.github.manager.service.impl
 ```
 
 消费端：
@@ -77,5 +94,18 @@ dubbo:
     address: zookeeper://192.168.1.127:2181
   protocol:
     port: 20880 # 默认不配就是20880，是dubbo服务的端口
+#连接zookeeper集群配置
+#server:
+#  port: 9101
+#
+#
+#dubbo:
+#  application:
+#    name: consumer
+#  registry:
+#    address: 192.168.1.121:2181,192.168.1.121:2182,192.168.1.121:2183
+#    protocol: zookeeper
+#  protocol:
+#    port: 20880 # 默认不配就是20880，是dubbo服务的端口
 ```
 
