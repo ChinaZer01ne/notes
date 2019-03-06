@@ -133,7 +133,26 @@ http {
     keepalive_timeout  65;	# 连接超时时间，单位是秒
 
     #gzip  on;	# 开启gzip压缩功能
-	
+	##cache缓存##
+	#跟后端服务器连接的超时时间_发起握手等候响应超时时间
+    proxy_connect_timeout 500;
+    #连接成功后_等候后端服务器响应的时间_其实已经进入后端的排队之中等候处理
+    proxy_read_timeout 600;
+    #后端服务器数据回传时间_就是在规定时间内后端服务器必须传完所有数据
+    proxy_send_timeout 500;
+    #代理请求缓存区_这个缓存区间会保存用户的头信息以供Nginx进行规则处理_一般只要能保存下头信息即可  
+    proxy_buffer_size 128k;
+    #同上 告诉Nginx保存单个用的几个Buffer最大用多大空间
+    proxy_buffers 4 128k;
+    #如果系统很忙的时候可以申请更大的proxy_buffers 官方推荐*2
+    proxy_busy_buffers_size 256k;
+     #proxy缓存临时文件的大小
+    proxy_temp_file_write_size 128k;
+    #用于指定本地目录来缓冲较大的代理请求
+    proxy_temp_path /usr/local/nginx/temp;
+    #设置web缓存区名为cache_one,内存缓存空间大小为12000M，自动清除超过15天没有被访问过的缓存数据，硬盘缓存空间大小200g
+    proxy_cache_path /usr/local/nginx/cache levels=1:2 keys_zone=cache_one:200m inactive=1d max_size=30g;
+  
 	# 反向代理负载均衡设定部分
     # upstream表示负载服务器池，定义名字为backend_server的服务器池
     # upstream backend_server {
@@ -148,6 +167,20 @@ http {
     #  }
     
     #基于域名的虚拟主机
+     server {
+    listen 80;
+    server_name www.test.com;
+    index index.html;
+    location / {
+    #缓存配置
+        proxy_pass http://backend_server;
+        proxy_cache cache;
+        proxy_cache_valid   200 304 12h;
+        proxy_cache_valid   any 10m;
+        add_header  Nginx-Cache "$upstream_cache_status";
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        }
+    }
     server {
    		#监听端口
         listen       80;
