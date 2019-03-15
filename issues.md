@@ -3,3 +3,9 @@
 2、jvm1.8+和之前的堆内存的异同？
 
 3、jvm1.8+和之前hashmap的实现的差别？
+
+4、netty零拷贝？
+
+5、Scalable IO in Java？
+
+6、进程间内存共享的方法？
