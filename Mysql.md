@@ -102,13 +102,21 @@ init_connect='SET NAMES utf8'
 
 ## 索引
 
+B+ tree
+
+联合索引，最左匹配原则
+
 
 
 ## 性能优化
 
 
 
-## InnoDB的锁机制
+## 锁机制
+
+Myisam，表锁
+
+Innodb，行锁，表锁
 
 
 
