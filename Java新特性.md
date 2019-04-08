@@ -169,20 +169,51 @@ list.forEach(Consumer)
 
 
 
-**方法引用分为4类表现形式：**
+####方法引用分为4类表现形式
 
 * 类名 :: 静态方法名    **classname::staticmethod**
+
+  >```java
+  >//students.sort(Student::compareStudent);
+  >public static int compareStudent(Student student1, Student student2){
+  >    return student1.getScore() - student2.getScore();
+  >}
+  >```
+
 * 引用名（对象名）:: 实例方法名    **objectname :: initialmethod**
+
+  > ```java
+  > //StudentComparator comparator = new StudentComparator();     //students.sort(comparator::compareStudentByScore);
+  > public class StudentComparator {
+  >     public int compareStudentByScore(Student student1,Student student2){
+  >         return student1.getScore() - student2.getScore();
+  >     }
+  > ```
+
 * 类名 :: 实例方法名     **classname::initialmethod**
-* 
 
+  > ```java
+  > //students.sort(Student::compareStudent);
+  > //只有一个参数，方法调用者是lambda表达式的第一个参数。
+  > public int compareStudent(Student student){
+  >     return student.getScore() - this.getScore();
+  > }
+  > ```
 
+* 构造方法引用，类名 :: new    classname::new
 
+  >```java
+  >//getStudent(Student::new);
+  >public Student getStudent(Supplier<Student> supplier){
+  >    return supplier.get();
+  >}
+  >```
 
+### 接口的默认方法
 
-```java
-list.forEach(System.out:println());
-```
+​	对于多实现接口中的同名的默认方法，需要在子类中重写继承的方法。如果想要调用父接口的实现，需要`MyInterface.super.method();`的形式。
+
+​	如果是继承的类和实现的接口中有同名方法，类中的会比接口的default方法优先级高。
 
 
 

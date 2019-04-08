@@ -119,11 +119,7 @@ git checkout -d [分支名]
 # 查看远程仓库的信息
 git remote
 
-# 创建新分支，并且切换到该分支，等价于： 
-# git brach [分支名]`创建分支 
-# git checkout [分支名]`切换分支 
-# 如果此时有未提交的修改，是无法切换分支的，这时候就可以用`git stash`进行暂存
-git checkout -b [分支名]
+
 
 # 查看分支，-r显示所有远程分支，-a显示所有本地分支和远程分支
 git branch
@@ -157,25 +153,79 @@ mydir/
 
 ## 分支
 
+###常用命令
+
 ```shell
 # 查看分支，-r显示所有远程分支，-a显示所有本地分支和远程分支
 git branch
 # 创建分支 
 git brach [分支名]
+# 当前分支最新的提交信息
+git branch -v
+# 删除分支
+git branch -d [分支名]
+# 强制删除，没合并分支的情况也会被删除分支
+git branch -D [分支名]
 # 切换分支 
 # 如果此时有未提交的修改，是无法切换分支的，这时候就可以用`git stash`进行暂存
 git checkout [分支名]
 # 创建新分支，并且切换到该分支
 git checkout -b [分支名]
+# 在最近的两个分支上进行来回切换
+git checkout -
+# 合并分支，比如想要把dev分支的修改合并到master中，就要在master分支上执行 git merge dev 命令
+git merge [分支名]
 ```
+
+### 概念原理
+
+HEAD：指向当前分支
+
+master：指向提交
+
+1、如下图所示，版本的每一次提交（commit），git都将它们根据提交的时间点串联成一条线。刚开始是只有一条时间线，即master分支，HEAD指向的是当前分支的当前版本。
+
+![img](images/git/HEAD和master.png)
+
+2、当创建了新分支，比如dev分支（通过命令git branch dev完成），git新建一个指针dev，dev=master，dev指向master指向的版本，然后切换到dev分支（通过命令git checkout dev完成），把HEAD指针指向dev，如下图。
+
+![img](images/git/切换分支.png)
+
+3、在dev分支上编码开发时，都是在dev上进行指针移动，比如在dev分支上commit一次，dev指针往前移动一步，但是master指针没有变，如下：
+
+![img](images/git/分支修改.png)
+
+4、当我们完成了dev分支上的工作，要进行分支合并，把dev分支的内容合并到master分支上（通过首先切换到master分支，git branch master，然后合并git merge dev命令完成）。其内部的原理，其实就是先把HEAD指针指向master，再把master指针指向现在的dev指针指向的内容。如下图。
+
+![img](images/git/合并分支.png)
+
+5、当合并分支的时候出现冲突（confict），比如在dev分支上commit了一个文件file1，同时在master分支上也提交了该文件file1，修改的地方不同（比如都修改了同一个语句），那么合并的时候就有可能出现冲突，如下图所示。
+
+![img](images/git/分支冲突.png)
+
+这时候执行git merge dev命令，git会默认执行合并，但是要手动解决下冲突，然后在master上git add并且git commit，现在git分支的结构如下图。
+
+![img](images/git/合并冲突.png)
+
+在master上合并成功后，切换到dev分支上，将master合并到dev上，会fast-forward，直接合并成功，因为master已经比dev快了一个版本了，上图绿色线条表示的地方。
+
+6、合并完成后，就可以删除掉dev分支（通过git branch -d dev命令完成）。
+
+![img](images/git/删除分支.png)
+
+
+
+
+
+[详细内容请看此博客](https://blog.csdn.net/zl1zl2zl3/article/details/52637737)
 
 
 
 ## 其他
 
-git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
+1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
 
-如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的
+2、如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的
 
-
+3、每个提交都有自己的parent指针，指向上一次提交的commit id。
 
