@@ -22,6 +22,124 @@
 
 
 
+#### 常用接口
+
+**java.util.function.Function**
+
+实现一个参数一个返回结果
+
+```java
+//一个参数一个返回结果
+java.util.function.Function
+//abstract method
+R apply(T t);
+//default method
+//将function组合起来，先应用before function，然后应用当前function
+Function<V, R> compose(Function<? super V, ? extends T> before){}
+//将function组合起来，先应用当前function，然后应用after function
+Function<T, V> andThen(Function<? super R, ? extends V> after){}
+//static method
+//返回当前参数
+Function<T, T> identity(){}
+```
+
+**java.util.function.BiFunction**
+
+实现两个参数产生一个结果的操作
+
+```java
+//实现两个参数产生一个结果的操作
+java.util.function.BiFunction
+//接收两个参数
+R apply(T t, U u);
+//先应用当前BiFunction，然后应用after function，因为BiFunction是接收两个参数的，所以没有类似于java.util.function.Function.compose()的方法
+BiFunction<T, U, V> andThen(Function<? super R, ? extends V> after){}
+```
+
+**java.util.function.Predicate**
+
+表示一个断言
+
+```java
+//表示一个断言
+java.util.function.Predicate
+//抽象方法
+//根据给定的条件判断返回true或false
+boolean test(T t);
+//默认方法
+//并且条件
+Predicate<T> and(Predicate<? super T> other){}
+//取反
+Predicate<T> negate(){}
+//或者条件
+Predicate<T> or(Predicate<? super T> other){}
+//静态方法
+Predicate<T> isEqual(Object targetRef){}
+Predicate<T> not(Predicate<? super T> target){}
+```
+
+**java.util.function.Supplier**
+
+```java
+java.util.function.Supplier
+//不接受参数返回一个结果
+T get();
+```
+
+**java.util.function.BinaryOperator**
+
+一个`BiFunction`的特例，`extends BiFunction<T,T,T>`
+
+```java
+//静态方法
+//根据比较器返回较小的
+BinaryOperator<T> minBy(Comparator<? super T> comparator){}
+//根据比较器返回较大的
+BinaryOperator<T> maxBy(Comparator<? super T> comparator){}
+```
+
+
+
+> 其他函数式接口，请参照`package java.util.function`包下。
+
+
+
+
+
+### Optional
+
+一个基于值的对象。可以用来规避`NullPointException`
+
+This is a value-based class.
+
+日常我们可以解决一些NPE的判断。
+
+```java
+Optional<String> optional = Optional.of("hello");
+
+//不推荐使用
+if (optional.isPresent()){
+    System.out.println(optional.get());
+}
+
+//推荐使用
+optional.ifPresent(str -> System.out.println(str));
+```
+
+**常用方法**
+
+```java
+//java.util.Optional
+//常用方法
+void ifPresent(Consumer<? super T> action){}
+void ifPresentOrElse(Consumer<? super T> action, Runnable emptyAction){}
+T orElse(T other)
+T orElseGet(Supplier<? extends T> supplier)
+.....
+```
+
+
+
 ### lambda表达式
 
 
@@ -45,7 +163,22 @@ list.forEach(Consumer)
 
 ### 方法引用
 
-通过方法引用创建函数式接口的引用。
+​	方法引用实际上是lambda表达式的语法糖。如果lambda的方法体恰好有一个方法客观存在，就可以是用方法引用代替。可以通过方法引用创建函数式接口的引用。
+
+​	我们可以将方法引用看作是一个**函数指针**，function pointer。
+
+
+
+**方法引用分为4类表现形式：**
+
+* 类名 :: 静态方法名    **classname::staticmethod**
+* 引用名（对象名）:: 实例方法名    **objectname :: initialmethod**
+* 类名 :: 实例方法名     **classname::initialmethod**
+* 
+
+
+
+
 
 ```java
 list.forEach(System.out:println());
@@ -62,11 +195,11 @@ https://blog.csdn.net/ycj_xiyang/article/details/83624642
 
 
 ```java
-    /**
-     * 这是一个中间操作
-     * 过滤出符合断言表达式的元素，返回一个Stream.
-     */
-    Stream<T> filter(Predicate<? super T> predicate);
+/**
+ * 这是一个中间操作
+ * 过滤出符合断言表达式的元素，返回一个Stream.
+ */
+Stream<T> filter(Predicate<? super T> predicate);
 ```
 
 
@@ -76,7 +209,7 @@ https://blog.csdn.net/ycj_xiyang/article/details/83624642
  * 返回一个流，包含了经过function处理后的的元素
  * 这是一个中间操作
  */
-<R> Stream<R> map(Function<? super T, ? extends R> mapper);
+Stream<R> map(Function<? super T, ? extends R> mapper);
 ```
 
 
@@ -99,7 +232,7 @@ DoubleStream mapToDouble(ToDoubleFunction<? super T> mapper);
 /**
  * 负责通过function处理后生成stream，把所有stream聚合起来放到一个stream中
  */
-<R> Stream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
+Stream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
 ```
 
 

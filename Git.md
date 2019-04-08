@@ -140,9 +140,42 @@ git pull origin master –allow-unrelated-histories
 
 
 
+## .gitignore文件
+
+```properties
+# 忽略所有以d结尾的文件
+*.d
+# 忽略当前文件的mydir文件下的所有文件
+mydir/
+# 忽略根目录下test.txt文件
+/test.txt
+# 忽略所有目录下test.txt文件，**代表所有层次
+/**/test.txt
+```
+
+
+
+## 分支
+
+```shell
+# 查看分支，-r显示所有远程分支，-a显示所有本地分支和远程分支
+git branch
+# 创建分支 
+git brach [分支名]
+# 切换分支 
+# 如果此时有未提交的修改，是无法切换分支的，这时候就可以用`git stash`进行暂存
+git checkout [分支名]
+# 创建新分支，并且切换到该分支
+git checkout -b [分支名]
+```
+
+
+
 ## 其他
 
 git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
+
+如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的
 
 
 
