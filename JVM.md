@@ -5,11 +5,27 @@
 在如下几种情况下，Java虚拟机将结束生命周期
 
 * 执行了System.exit()方法
+
 * 程序正常执行结束
+
 * 程序执行过程中遇到了异常或错误而异常终止
+
 * 由于操作系统出现错误而导致Java虚拟机进程终止
 
 
+## 助记符
+
+- `ldc`：表示将int，float或是String类型的常量值从常量池中推送到栈顶。（表示接下来要使用）。相关类`com.sun.org.apache.bcel.internal.generic.LDC`
+- `iconst_`：对于`-1到5之间`，java虚拟机用（`iconst_m1`，`iconst_0`，`iconst_1`，`iconst_2`，`iconst_3`，`iconst_4`，`iconst_5`）来表示。表示将（`-1到5`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ICONST`
+
+- `bipush`：表示将单字节（`-128到127`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.BIPUSH`
+
+- `sipush`：表示将短整形（`-32768到32767`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.SIPUSH`
+
+  > 对于数字的优先级：const_、bipush、sipush
+
+* `newarray`：表示创建一个指定的原始类型（如：int、float、char等）的数组，并将其引用值压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.NEWARRAY`
+* `anewarray`：表示创建一个引用类型的（如类、接口、数组）数组，并将其压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ANEWARRAY`
 
 ## 类加载过程
 
@@ -140,6 +156,32 @@
 
   其他情况都为被动使用，被动使用**不会触发初始化过程**（有可能触发加载连接过程）。
 
+  >引用数组类型不会导致类的初始化，引用数组类型是运行期间jvm动态生成的。不属于主动使用
+
+
+
+### 编译器常量和运行期常量的区别
+
+​	1、当我们调用一个类的静态常量的时候，是不会触发类的的初始化的，在编译阶段，常量就已经放到调用方所在类的常量池中了。就算编译完成，把常量所在类的字节码删除也不影响运行结果。
+
+```java
+//这是一个编译期常量
+public static final String str = "hello";
+```
+
+> 在字节码中，用一个助记符来代表静态常量
+
+注意：如果常量是类似
+
+```java
+//这不是一个编译期常量
+public static final String str = UUID.randomUUID().toString();
+```
+
+因为随机数函数是编译期间未知的结果，所以在编译期间，这个常量是无法放入调用方所在类的常量池中的，在运行期间，会导致主动使用常量所在的类，所以会触发类的初始化。
+
+
+
 ## 类加载器
 
 
@@ -200,3 +242,13 @@ null
 
 
 ## JVM内存模型
+
+
+
+## 其他
+
+
+
+
+
+​	

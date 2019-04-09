@@ -58,17 +58,21 @@ a）git config --global user.username 'xxx'
 
 b）git config --global user.email 'xxx'
 
+> `git config --system`
+>
+> `git config --local`
+
 c）ssh-keygen -t rsa -C ‘xxx’
 
 
 
 对于user.name和user.email来说，有3个地方可以设置,查找顺序最近原则3，2，1.
 
-1、/etc/gitconfig（几乎不会使用），针对于操作系统，git config --system
+1、`/etc/gitconfig`（几乎不会使用），针对于操作系统，`git config --system`
 
-2、~/.gitconfig（很常用），针对用用户，git config --global
+2、`~/.gitconfig`（很常用），针对用用户，`git config --global`
 
-3、.git/config文件中，针对于特定项目的，git config --local
+3、`.git/config`文件中，针对于特定项目的，`git config --local`
 
 
 
@@ -77,14 +81,13 @@ c）ssh-keygen -t rsa -C ‘xxx’
 ```shell
 # 文件进入stage
 git add <file>
-
 # 让文件从暂存区回到工作区
 git rm --cached <file> 
 git reset HEAD <file>` 
-
 # 删除文件并且将其放入暂存区
 git rm <file>
-# 修改的文件还原到未修改状态，内容找不回了。	
+# 修改的文件还原到未修改状态，内容找不回了。	丢弃相对于暂存区中，文件最后一次变更
+# 如果文件已经放到暂存区中，该命令是无效的
 git checkout -- <file>
 
 # 进入本地仓库，-m指定提交信息
@@ -92,7 +95,8 @@ git commit
 
 # 修正最近一条的提交信息
 git commit amend -m "修正"
-
+# 放到暂存区，并且提交
+git commit -am [提交信息]
 # 到远端仓库
 git push
 
@@ -105,16 +109,17 @@ git log
 git log -3
 # 日志列表
 git log pretty=oneline
-
+# 图形化显示日志
+git log --graph
+# 其他形式显示日志
+git log --graph --abbrev-commit
+git log --graph --pretty=oneline --abbrev-commit
 # 帮助文档
 git config --help
 git help config
-
 # 从远程仓库克隆
 git clone [地址]
 
-# 删除分支
-git checkout -d [分支名]
 
 # 查看远程仓库的信息
 git remote
@@ -160,6 +165,8 @@ mydir/
 git branch
 # 创建分支 
 git brach [分支名]
+# 分支重命名
+git branch -m [old branch name] [new branch name]
 # 当前分支最新的提交信息
 git branch -v
 # 删除分支
@@ -175,6 +182,15 @@ git checkout -b [分支名]
 git checkout -
 # 合并分支，比如想要把dev分支的修改合并到master中，就要在master分支上执行 git merge dev 命令
 git merge [分支名]
+# 合并分支，不使用fast-forward模式，这种合并方式会产生一次新的提交
+git merge --no-ff [分支名]
+
+# 其他切换分支命令
+# 切换到指定id的版本上，此时的HEAD是游离状态的，如果在此分支做了修改，需要提交才能再切换分支
+git checkout [commit id]
+# 如果HEAD是游离状态，切换分支后，提交也是游离状态，可以使用下面来新建分支保存那个状态,commit id 代表你上次checkout切换的分支id
+git branch <new-branch-name> [commit id]
+
 ```
 
 ### 概念原理
@@ -221,11 +237,99 @@ master：指向提交
 
 
 
+## 回退版本
+
+### 常用命令
+
+```shell
+# 回退到上个版本
+git reset --hard HEAD^
+# 回退到上上个版本（回退两个版本）
+git reset --hard HEAD^^
+# 如果回退了，又想回去，commit id不需要写全
+git reset --hard [commit id]
+# 如果你回退之后，又想回去，但不知道commit id了，就需要查看里是的操作日志信息
+git reflog
+# 回退到之前的第2个提交
+git reset --hard HEAD~2
+# 回退到指定的提交
+git reset --hard [commit id]
+```
+
+## 现场保存
+
+​	当在一个分支做了一些修改，提交后，切换到另一个分支做了一些修改，修改未完成，没有提交，此时想切换分支就无法切换了，这就需要下面的命令了。
+
+### 常用命令
+
+```shell
+# 将当前的工作情况保存
+git stash
+# 查看保存的现场列表 
+git stash list
+# 恢复之前的保存的状态，并把该条状态信息删除
+git stash pop
+# 恢复之前的保存的状态，不删除该条状态信息，你可能需要手动删除git stash drop stash@{0}
+git stash apply
+# 恢复指定的保存状态
+git stash apply stash@{1}
+# 删除某条状态信息
+git stash drop stash@{0}
+```
+
+
+
+## 标签
+
+标签有两种：轻量级标签、带有附注的标签
+
+### 常用命令
+
+```shell
+# 创建轻量级标签
+git tag [标签名]
+# 创建带有附注的标签
+git tag -a [标签名] -m [附注]
+# 查看存在的标签
+git tag
+# 查找标签，支持*通配符
+git tag -l [关键词]
+# 删除标签
+git tag -d [标签名]
+```
+
+
+
+## 文件比较
+
+**主要是三个区域的相互比较：工作区、暂存区、版本库。**
+
+```shell
+# 比较暂存区与工作区文件之间的差别
+git diff
+# 工作区和最新的提交的差别
+git diff HEAD
+# 最新的提交和暂存区的差别
+git diff --cached
+# 和指定commit id的差别
+git diff [commit id]
+git diff --cached [commit id]
+```
+
+
+
 ## 其他
 
 1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
 
-2、如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的
+2、如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的。
 
 3、每个提交都有自己的parent指针，指向上一次提交的commit id。
 
+4、`git checkout -- <file>` ：丢弃相对于暂存区中，文件最后一次变更
+
+​      `git reset HEAD <file>` ：让文件从暂存区回到工作区。
+
+​      如果文件已经放到暂存区中。那么`git checkout -- <file> `是无效的。
+
+5、使用`git blame <file>`命令查看文件的修改历史。

@@ -221,7 +221,33 @@ list.forEach(Consumer)
 
 
 
-https://blog.csdn.net/ycj_xiyang/article/details/83624642
+####构成
+
+* 源
+* 零个或多个中间操作
+* 终止操作
+
+
+
+####分类
+
+* 惰性求职
+
+* 及早求值
+
+
+
+#### 创建
+
+```tex
+Stream.of()
+Arrays.stream()
+list.stream()
+```
+
+
+
+#### 常用方法
 
 
 
@@ -313,6 +339,12 @@ Stream<T> peek(Consumer<? super T> action);
 ```
 
 
+
+#### 资料
+
+
+
+https://blog.csdn.net/ycj_xiyang/article/details/83624642
 
 ## Java 11
 
