@@ -176,7 +176,13 @@ JDK1.8 默认提供了如下几种ClassLoader
 
 除了系统提供的类加载器以外，开发人员可以通过继承 java.lang.ClassLoader类的方式实现自己的类加载器，以满足一些特殊的需求。
 
+
+
+##### 双亲委派机制
+
 ![img](images\JVM\jdk1.8前类加载器.png)
+
+
 
 #### JDK1.9+
 
@@ -213,6 +219,23 @@ null
 
 
 
+#### ClassLoader获取方法
+
+```java
+// 获取当前类的ClassLoader
+clazz.getClassLoader();
+//获取当前线程上下文的ClassLoader，一般是应用类加载器
+Thread.currentThread().getContextClassLoader();
+//获取系统的ClassLoader
+ClassLoader.getSystemClassLoader();
+//获取调用者的ClassLoader
+DriverMannager.getCallerClassLoader();
+```
+
+
+
+
+
 ### 类加载过程的其他问题
 
 
@@ -244,13 +267,13 @@ null
 
   其他情况都为被动使用，被动使用**不会触发初始化过程**（有可能触发加载连接过程）。
 
-  
 
-  注意：
+
+  **注意：**
 
   ​	引用数组类型不会导致类的初始化，引用数组类型是运行期间jvm动态生成的。不属于主动使用。
 
-  ​	调用`ClassLoader`类的loadClass方法加载一个类，并不是对类的主动使用，不会导致类的初始化。
+  ​	调用`ClassLoader`类的`loadClass`方法加载一个类，并不是对类的主动使用，不会导致类的初始化。
 
 
 
@@ -263,7 +286,7 @@ null
 public static final String str = "hello";
 ```
 
-> 在字节码中，用一个助记符来代表静态常量
+> 在字节码中，助记符是ldc之类的。
 
 注意：如果常量是类似
 
@@ -272,9 +295,11 @@ public static final String str = "hello";
 public static final String str = UUID.randomUUID().toString();
 ```
 
+> 在字节码中，助记符是getstatic之类的。
+
 因为随机数函数是编译期间未知的结果，所以在编译期间，这个常量是无法放入调用方所在类的常量池中的，在运行期间，会导致主动使用常量所在的类，所以会触发类的初始化。
 
-
+> 我们可以通过助记符来看jvm时候对类进行了初始化。
 
 ####准备和初始化阶段的理解
 
@@ -329,7 +354,6 @@ counter2 : 0
 
   > java编译器为它编译的每一个类都至少生成一个实例初始化方法，在java的class文件中，这个实例初始化方法被称为`<init>(表示对实例变量的初始化)`。针对源代码中每一个类的构造方法，java编译器都产生一个`<init>方法，类似对类的``<clinit>(表示对静态变量的初始化)`
 
-  
 
 ## JVM内存模型
 

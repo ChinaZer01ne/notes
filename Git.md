@@ -52,7 +52,9 @@ Git保证完整性。
 
 **git文件状态：已修改，已暂存，已提交。**
 
-## 安装
+
+
+## 用户设置
 
 a）git config --global user.username 'xxx'
 
@@ -61,8 +63,6 @@ b）git config --global user.email 'xxx'
 > `git config --system`
 >
 > `git config --local`
-
-c）ssh-keygen -t rsa -C ‘xxx’
 
 
 
@@ -89,20 +89,18 @@ git rm <file>
 # 修改的文件还原到未修改状态，内容找不回了。	丢弃相对于暂存区中，文件最后一次变更
 # 如果文件已经放到暂存区中，该命令是无效的
 git checkout -- <file>
-
 # 进入本地仓库，-m指定提交信息
 git commit
-
 # 修正最近一条的提交信息
 git commit amend -m "修正"
+# 修改提交的用户
+git commit amend -reset-author
 # 放到暂存区，并且提交
 git commit -am [提交信息]
 # 到远端仓库
 git push
-
 # 查看当前仓库状态。会提示那些文件发生修改，哪些内容需要add&commit。
 git status
-
 # 日志
 git log
 # 前三条
@@ -117,26 +115,6 @@ git log --graph --pretty=oneline --abbrev-commit
 # 帮助文档
 git config --help
 git help config
-# 从远程仓库克隆
-git clone [地址]
-
-
-# 查看远程仓库的信息
-git remote
-
-
-
-# 查看分支，-r显示所有远程分支，-a显示所有本地分支和远程分支
-git branch
-
-# 关联远程仓库
-git remote add origin https://github.com/ChinaZer01ne/utils.git
-
-# 将本地的分支和远程分支进行关联了
-git branch --set-upstream-to=origin/<branch>
-
-# 合并两个独立的仓库
-git pull origin master –allow-unrelated-histories
 ```
 
 
@@ -318,6 +296,68 @@ git diff --cached [commit id]
 
 
 
+## 远程
+
+
+
+### 常用命令
+
+```shell
+# 从远程仓库克隆
+git clone [地址]
+# 拉取，pull = fetch + merge
+git pull
+# 推送
+git push
+# 查看远程仓库的信息
+git remote
+# 列出所有的远程仓库的别名（有可能你本地仓库关联了Github、Gitlib多个远程仓库）
+git remote show
+# 显示远程仓库详情
+git remote show [远程仓库别名]
+# 关联远程仓库
+git remote add origin https://github.com/ChinaZer01ne/utils.git
+# 将本地的分支和远程分支进行关联了
+git branch --set-upstream-to=origin/<branch>
+# 合并两个独立的仓库
+git pull origin master –allow-unrelated-histories
+```
+
+
+
+### 如何将项目分享到Github上
+
+1、如果Github上已经新建了一个空的仓库，那么我们只需要将本地仓库和远程仓库关联起来就可以了。
+
+```shell
+# 关联远程仓库
+git remote add origin [仓库地址]
+# 将本地的master与远程做关联
+git push -u origin master
+```
+
+如果远程和本地仓库是两个独立的项目（仓库名不一致）的话，尝试这两个命令。
+
+```shell
+# 将本地的分支和远程分支进行关联了
+git branch --set-upstream-to=origin/<branch>
+# 合并两个独立的仓库
+git pull origin master -–allow-unrelated-histories
+```
+
+
+
+如果你想使用`SSH`的形式的仓库地址，就要`在仓库setting的Deploy keys`先配置`SSH密钥`
+
+```shell
+# 执行该命令生成公钥私钥，默认在~/.ssh文件夹下
+ssh-keygen
+```
+
+将生成的公钥配置到Github上（`~/.ssh/id_rsa`）,然后执行关联仓库的操作（回到步骤1）
+
+
+
 ## 其他
 
 1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
@@ -333,3 +373,9 @@ git diff --cached [commit id]
 ​      如果文件已经放到暂存区中。那么`git checkout -- <file> `是无效的。
 
 5、使用`git blame <file>`命令查看文件的修改历史。
+
+6、 `git remote show [仓库别名]`显示仓库详情
+
+`Fetch URL`：版本拉取的地址。
+
+`Push URL`：版本推送的地址。
