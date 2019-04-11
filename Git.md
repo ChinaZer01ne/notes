@@ -115,6 +115,11 @@ git log --graph --pretty=oneline --abbrev-commit
 # 帮助文档
 git config --help
 git help config
+# 配置别名，如 branch 用 br来替换，reset HEAD 用 unstage 替换，这些被写入到~/.gitconfig中
+git config --global alias.br branch
+git config --global alias.unstage 'reset HEAD'
+# 用 ！表示一个外部命令
+git config --global alias.ui '!gitk'
 ```
 
 
@@ -298,29 +303,59 @@ git diff --cached [commit id]
 
 ## 远程
 
+###概念
+
+`origin/master`：远程分支，这个分支对应了远程仓库的`master`分支。
+
 
 
 ### 常用命令
 
 ```shell
-# 从远程仓库克隆
-git clone [地址]
+# 从远程仓库克隆，
+git clone [地址] 
+git clone [地址] [自定义仓库名称]
 # 拉取，pull = fetch + merge
 git pull
 # 推送
 git push
+## 完整写法
+git push origin src:dest
 # 查看远程仓库的信息
 git remote
 # 列出所有的远程仓库的别名（有可能你本地仓库关联了Github、Gitlib多个远程仓库）
 git remote show
 # 显示远程仓库详情
 git remote show [远程仓库别名]
+# 查看所有分支
+git branch -a
+# 查看远程分支
+git branch -r
+# 查看所有分支及最后一次提交
+git branch -av
 # 关联远程仓库
 git remote add origin https://github.com/ChinaZer01ne/utils.git
 # 将本地的分支和远程分支进行关联了
 git branch --set-upstream-to=origin/<branch>
 # 合并两个独立的仓库
 git pull origin master –allow-unrelated-histories
+# 把本地分支推送到远程，当远程没有对应分支的时候，执行
+git push --set-upstream origin [分支名]
+# 当本地没有与远程对应的分支，如果向追踪远程分支，执行 如：git checkout -b dev origin/dev
+git checkout -b [分支名] [远程分支名]
+## 也可以用这个，只是默认名对应了远程分支
+git checkout --track [远程分支名]
+# 删除远程分支
+git push origin :[要删除的目标分支]
+git push origin --delete [要删除的目标分支]
+# 恢复删除的远程分支，如果忽略两个参数，就是把当前分支推送到远程，是同名的
+git push --set-upstream origin [源分支]:[目标分支]
+## 创建同名的
+git push origin [目标分支]
+## 创建不同名的
+git push origin HEAD:[新分支名]
+# 如果想重命名远程分支，只能先删掉远程分支，然后重新推送本地分支
+略
 ```
 
 
@@ -333,7 +368,10 @@ git pull origin master –allow-unrelated-histories
 # 关联远程仓库
 git remote add origin [仓库地址]
 # 将本地的master与远程做关联
-git push -u origin master
+# 新版本不推荐
+git push -u origin [分支名]
+# 新版本推荐
+git push --set-upstream origin [分支名]
 ```
 
 如果远程和本地仓库是两个独立的项目（仓库名不一致）的话，尝试这两个命令。
@@ -358,6 +396,8 @@ ssh-keygen
 
 
 
+
+
 ## 其他
 
 1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
@@ -379,3 +419,11 @@ ssh-keygen
 `Fetch URL`：版本拉取的地址。
 
 `Push URL`：版本推送的地址。
+
+7、`git push`完成了两件事情：①推送到远程②改变`origin/master`和当前分支版本一致
+
+8、git是不会让我们直接修改`origin/master`的，当我们使用`git checkout origin/master `，会切换到`origin/master`对应的最新的提交上，这个HEAD游离状态的。
+
+9、`fast-forward`：快进，说明没有冲突。
+
+10、`vi`删除的命令`dd`删除一行，`2,4d`：表示删除第二行到第四行。
