@@ -178,7 +178,7 @@ git branch <new-branch-name> [commit id]
 
 ### 概念原理
 
-HEAD：指向当前分支
+HEAD：指向当前分支的引用标识符
 
 master：指向提交
 
@@ -279,6 +279,12 @@ git tag
 git tag -l [关键词]
 # 删除标签
 git tag -d [标签名]
+# 查看标签信息
+git show [标签名]
+# 将标签推送到远程，比如github，可以跟多个标签名
+git push origin [标签名]
+# 将未推送的标签全部推送到远程
+git push origin --tags
 ```
 
 
@@ -317,9 +323,11 @@ git clone [地址]
 git clone [地址] [自定义仓库名称]
 # 拉取，pull = fetch + merge
 git pull
+## 完整写法，src表示远程分支，dest表示本地分支
+git pull origin src:dest
 # 推送
 git push
-## 完整写法
+## 完整写法，src表示本地分支，dest表示远程分支，注意刚好和pull相反
 git push origin src:dest
 # 查看远程仓库的信息
 git remote
@@ -402,7 +410,7 @@ ssh-keygen
 
 1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
 
-2、如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的。
+2、如果新创建一个文件夹或文件mydir，如果mydir中没有文件或没有数据，git是不识别的。
 
 3、每个提交都有自己的parent指针，指向上一次提交的commit id。
 
@@ -427,3 +435,11 @@ ssh-keygen
 9、`fast-forward`：快进，说明没有冲突。
 
 10、`vi`删除的命令`dd`删除一行，`2,4d`：表示删除第二行到第四行。
+
+11、我们对于HEAD修改的任何操作，都会被`git reflog`完整记录下来。
+
+​	实际上我们可以通过git底层命令`symbolic-ref`来实现对HEAD文件内容的修改。
+
+12、HEAD文件时一个指向你当前所在分支的引用标识符，该文件内部并不包含SHA-1值，而是一个指向另外一个引用的指针。
+
+13、当执行`git commit`命令的时候，git会创建一个commit对象，并将这个对象的`parent指针`设置为HEAD所指向的引用的SHA-1值
