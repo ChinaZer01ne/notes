@@ -360,6 +360,8 @@ Function<A, R> finisher();
 
 并行和串行需要满足同一性（identity）和结合性（associativity），[详情请参照](java.util.stream.Collectors)
 
+
+
 #### Collectors类
 
 jdk8提供了对集合操作的类Collectors。它提供了关于Collector的可变的汇聚操作，比如分组分区的功能。一般返回一个Collector对象。
