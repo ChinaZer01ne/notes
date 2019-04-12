@@ -475,7 +475,24 @@ git subtree push --prefix=[push的文件] [push的地址别名] [push的分支]
 
 场景：
 
-​	项目开发中有很多分支，开发的时候发现，自己应该在dev分支上开发，但不小心到了master做了文件的修改，如何把自己在master上修改的文件应用到dev上？
+​	项目开发中有很多分支，开发的时候发现，自己应该在dev分支上开发，但不小心到了master做了文件的提交，如何把自己在master上的提交应用到dev上？
+
+```shell
+# commit id 是你想应用的提交
+# 把master的提交应用到dev上，就在dev分支上执行git cherry-pick [commit id]，这个commit id是master上的你想修改的提交
+# commit id 最好是从你想修改的第一次提交开始，慢慢追加，如果你直接选择最后的提交，那么必须经历个merge的过程，并且一些日志
+git cherry-pick [commit id]
+# 将master分支的文件提交应用到dev上之后，你可能想让master分支恢复之前的状态，那么先切换到之前状态的master分支上（游离态），commit id表示之前状态的分支
+git checkout [commit id]
+# 然后删除master分支
+git branch -D [分支名]
+# 然后从游离态新建切换到master分支
+git checkout -b [分支名]
+# 然后重新关联master分支
+git branch --set-upstream-to=[远程分支引用]
+```
+
+
 
 
 
