@@ -313,6 +313,61 @@ Stream<T> iterate(T seed, Predicate<? super T> hasNext, UnaryOperator<T> next){}
 
 
 
+#### Collector类
+
+​	这是流操作中及其重要的类，一般配合`stream#collect`使用。
+
+​	他是一个可变的汇聚操作，将输入元素累积到一个可变的结果容器中；在所有输入元素处理完毕后，他会将累积的结果转换为一个最终的表示（可选操作），它支持串行和并行。
+
+* creation of a new result container (supplier())
+* incorporating a new data element into a result container (accumulator())
+* combining two result containers into one (combiner())
+* performing an optional final transform on the container (finisher())
+
+​	
+
+```java
+/**
+ A function that creates and returns a new mutable result container.
+*/
+Supplier<A> supplier();
+/**
+A function that folds a value into a mutable result container.
+*/
+BiConsumer<A, T> accumulator();
+
+/**
+A function that accepts two partial results and merges them.  
+The combiner function may fold state from one argument into the other and return that, or may return a new result container.
+接收两个集合，可能是将两个集合折叠成一个集合（将B集合内容全部放到A集合）可能是将两个集合合并成一个新的集合（将AB两个集合合并新集合C集合）
+ */
+BinaryOperator<A> combiner();
+/**
+Perform the final transformation from the intermediate accumulation type
+*/
+Function<A, R> finisher();
+```
+
+
+
+	> **A sequential implementation** of a reduction using a collector would **create a single result container using the supplier function**, **and invoke the accumulator** function once for each input element. **A parallel implementation** would partition the input, **create a result container for each partition**, **accumulate the contents** of each partition into a subresult for that partition, **and then use the combiner function** to merge the subresults into a combined result.
+	>
+	> ​								——java.util.stream.Collector
+
+一个单线程的collect是不会调用`Collector#combiner`方法的。 
+
+
+
+并行和串行需要满足同一性（identity）和结合性（associativity），[详情请参照](java.util.stream.Collectors)
+
+#### Collectors类
+
+jdk8提供了对集合操作的类Collectors。它提供了关于Collector的可变的汇聚操作，比如分组分区的功能。一般返回一个Collector对象。
+
+[详情请看](java.util.stream.Collectors)
+
+
+
 #### 其他
 
 1、所有中间操作都会返回一个新的Stream对象。
@@ -323,11 +378,17 @@ Stream<T> iterate(T seed, Predicate<? super T> hasNext, UnaryOperator<T> next){}
 
 4、在多个stream操作中，会依次把元素应用到所有给定操作上。如果遇到一个短路终端操作，遇到满足条件的元素就终止掉了，不会继续往下执行。
 
+
+
 #### 资料
 
 
 
 https://blog.csdn.net/ycj_xiyang/article/details/83624642
+
+
+
+
 
 ## Java 11
 

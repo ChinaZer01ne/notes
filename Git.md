@@ -1,6 +1,8 @@
 # Git
 
-##Git和Svn的区别
+##引入
+
+###Git和Svn的区别
 
 ![](images\git\Git和Svn的区别.png)
 
@@ -12,7 +14,7 @@ Git是分布式的，存储的是完整的文件，去中心化，和区块链�
 
 Git保证完整性。
 
-## 集中式版本控制（svn）和分布式版本控制的区别
+### 集中式版本控制（svn）和分布式版本控制的区别
 
 集中式版本控制:(svn是这种形式)
 
@@ -39,6 +41,8 @@ Git保证完整性。
 6、git速度更快,效率更高。
 
 基于以上区别,git有了很明显的优势,特别在于它具有的本地仓库。
+
+
 
 ## 概念
 
@@ -79,11 +83,16 @@ b）git config --global user.email 'xxx'
 ## git常用命令
 
 ```shell
+# 初始化git仓库
+git init
+# 创建git裸库
+git init --bare
 # 文件进入stage
 git add <file>
 # 让文件从暂存区回到工作区
+git reset HEAD <file>
+# 让commit文件变成未追踪的状态
 git rm --cached <file> 
-git reset HEAD <file>` 
 # 删除文件并且将其放入暂存区
 git rm <file>
 # 修改的文件还原到未修改状态，内容找不回了。	丢弃相对于暂存区中，文件最后一次变更
@@ -178,7 +187,7 @@ git branch <new-branch-name> [commit id]
 
 ### 概念原理
 
-HEAD：指向当前分支的引用标识符
+HEAD：指向当前分支
 
 master：指向提交
 
@@ -266,6 +275,10 @@ git stash drop stash@{0}
 
 标签有两种：轻量级标签、带有附注的标签
 
+轻量级标签是保存了当前提交sha-1值。（一层指向）
+
+带有附注的标签是一个对象，有自己的sha-1值，然后指向当前提交的sha-1值（两层）
+
 ### 常用命令
 
 ```shell
@@ -279,12 +292,11 @@ git tag
 git tag -l [关键词]
 # 删除标签
 git tag -d [标签名]
-# 查看标签信息
-git show [标签名]
-# 将标签推送到远程，比如github，可以跟多个标签名
-git push origin [标签名]
-# 将未推送的标签全部推送到远程
-git push origin --tags
+# 将标签推送到远程
+git push origin v1.0
+# 删除远程标签
+git push origin --delete tag [标签名]
+git push origin :refs/tags/[标签名]
 ```
 
 
@@ -323,11 +335,9 @@ git clone [地址]
 git clone [地址] [自定义仓库名称]
 # 拉取，pull = fetch + merge
 git pull
-## 完整写法，src表示远程分支，dest表示本地分支
-git pull origin src:dest
 # 推送
 git push
-## 完整写法，src表示本地分支，dest表示远程分支，注意刚好和pull相反
+## 完整写法
 git push origin src:dest
 # 查看远程仓库的信息
 git remote
@@ -346,7 +356,7 @@ git remote add origin https://github.com/ChinaZer01ne/utils.git
 # 将本地的分支和远程分支进行关联了
 git branch --set-upstream-to=origin/<branch>
 # 合并两个独立的仓库
-git pull origin master –allow-unrelated-histories
+git pull origin master --allow-unrelated-histories
 # 把本地分支推送到远程，当远程没有对应分支的时候，执行
 git push --set-upstream origin [分支名]
 # 当本地没有与远程对应的分支，如果向追踪远程分支，执行 如：git checkout -b dev origin/dev
@@ -364,6 +374,18 @@ git push origin [目标分支]
 git push origin HEAD:[新分支名]
 # 如果想重命名远程分支，只能先删掉远程分支，然后重新推送本地分支
 略
+# 如果远程分支被删掉了，可能你需要在本地把远程分支的引用删除，可以执行
+git remote prune origin
+# 查看远程分支日志
+git log origin/[远程分支名]
+git log remotes/origin/[远程分支名]
+git log refs/remotes/origin/[远程分支名]
+# 如果你想创建一个远程分支的引用，如果没有本地分支对应，那么他是一个stale状态
+git fetch origin [远程分支名]:refs/remotes/origin/[自定义引用名]
+# 如果是本地没有分支和本地创建的远程分支引用对应那么，可以执行
+git checkout --track origin/[你的远程分支的引用名]
+## 或者（全名）
+git checkout --track refs/remotes/origin/[你的远程分支的引用名]
 ```
 
 
@@ -404,13 +426,64 @@ ssh-keygen
 
 
 
+## submodule
+
+场景：
+
+​	我们有一个A项目（git版本管理），A项目依赖B模块的代码，B模块是单独的git仓库管理的。我们需要将B模块的git仓库变成A模块的仓库的一个子模块，形成一种父子关系。
+
+```shell
+# 将子模块拉取到当前面模块的xxx文件（这个文件夹不要自己创建，git会自动生成）中
+# 如 git submodule add https://github.com/ChinaZer01ne/git_child.git submodule
+git submodule add [子模块的地址] [当前模块的xx文件夹,可选参数]
+# 拉取更新，你可以进入单独的子模块执行，git pull操作，也可以
+## 在根目录就可以拉取所有的更新，包括子模块的更新
+git submodule foreach git pull
+# 但我们克隆一个依赖submodule的git项目时，克隆下来，submodule模块里面内容是空的，我们需要进入子模块进行初始化和更新操作。
+git submodule init
+git submodule update --recursive
+## 另一种方法一条命令解决
+git clone https://github.com/ChinaZer01ne/git_parent.git --recursive
+# 删除submodule，没有提供直接的命令，不过我们可以使用删除然后提交的方式
+略
+```
+
+​	
+
+弊端：
+
+因为父模块包含了子模块，所以父模块就可以修改子模块，然后推送，这就会出现一些问题。因此就出现了`git subtree`命令，来替代`submodule`，这也是git官方推荐使用的。
+
+
+
+## subtree
+
+```shell
+# 在父模块中关联子模块， 如git remote add subtree-origin  https://github.com/ChinaZer01ne/git_subtree_child.git
+git remote add [别名] [地址] 
+# 添加子模块 git subtree add --prefix=subtree subtree-origin master --squash，--squash参数表示是否将子模块的提交合并成一次提交，这个参数如果使用那么以后pull的时候一定要都加上，如果没有使用，那么以后都不要使用，否则会出现一些莫名其妙的问题
+git subtree add --prefix=[拉取到当前模块的位置] [拉取的地址别名] [拉取的分支] 
+# 在父模块中拉取，如git subtree pull --prefix=subtree subtree-origin master
+git subtree pull --prefix=[拉取到当前模块的位置] [拉取的地址别名] [拉取的分支] 
+# 如果在父模块修改了子模块的数据，可以通过git push推到父模块，通过如下命令，推送到子模块git subtree push --prefix=subtree subtree-origin master
+git subtree push --prefix=[push的文件] [push的地址别名] [push的分支] 
+```
+
+
+
+## cherry-pick
+
+场景：
+
+​	项目开发中有很多分支，开发的时候发现，自己应该在dev分支上开发，但不小心到了master做了文件的修改，如何把自己在master上修改的文件应用到dev上？
+
 
 
 ## 其他
 
 1、git的提交id（commit id）是一个摘要值，是通过sha1计算出来的。
 
-2、如果新创建一个文件夹或文件mydir，如果mydir中没有文件或没有数据，git是不识别的。
+2、如果新创建一个文件夹mydir，如果mydir中没有文件，git是不识别的。
 
 3、每个提交都有自己的parent指针，指向上一次提交的commit id。
 
@@ -435,11 +508,3 @@ ssh-keygen
 9、`fast-forward`：快进，说明没有冲突。
 
 10、`vi`删除的命令`dd`删除一行，`2,4d`：表示删除第二行到第四行。
-
-11、我们对于HEAD修改的任何操作，都会被`git reflog`完整记录下来。
-
-​	实际上我们可以通过git底层命令`symbolic-ref`来实现对HEAD文件内容的修改。
-
-12、HEAD文件时一个指向你当前所在分支的引用标识符，该文件内部并不包含SHA-1值，而是一个指向另外一个引用的指针。
-
-13、当执行`git commit`命令的时候，git会创建一个commit对象，并将这个对象的`parent指针`设置为HEAD所指向的引用的SHA-1值
