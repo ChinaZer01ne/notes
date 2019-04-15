@@ -163,11 +163,11 @@
 JDK1.8 默认提供了如下几种ClassLoader
 
 **1、Bootstrp loader**
-`Bootstrp loader`是用C++语言写的，它是在Java虚拟机启动后初始化的，它**主要负责加载%JAVA_HOME%/jre/lib**，`-Xbootclasspath`参数指定的路径以及%JAVA_HOME%/jre/classes中的类。
+`Bootstrp loader`是用C++语言写的，它是在Java虚拟机启动后初始化的，属于JVM的一部分。它**主要负责加载%JAVA_HOME%/jre/lib**，`-Xbootclasspath`参数指定的路径以及%JAVA_HOME%/jre/classes中的类。
 
 **2、ExtClassLoader**  
 
-`Bootstrp loader`加载``ExtClassLoader`,并且将`ExtClassLoader`的父加载器设置为`Bootstrp loader.ExtClassLoader`是用Java写的，具体来说就是 `sun.misc.Launcher$ExtClassLoader`，`ExtClassLoader`**主要加载%JAVA_HOME%/jre/lib/ext，此路径下的所有classes目录以及java.ext.dirs系统变量指定的路径中类库**。
+`Bootstrp loader`加载``ExtClassLoader`,并且将`ExtClassLoader`的父加载器设置为`Bootstrp loader.ExtClassLoader`是用Java写的，具体来说就是 `sun.misc.Launcher$ExtClassLoader`，`ExtClassLoader`**主要加载%JAVA_HOME%/jre/lib/ext，此路径下的所有classes目录以及java.ext.dirs系统变量指定的路径中类库**。J扩展类加载器会从文件目录的ar包中加载，而不是直接从文件目录中找class文件。
 
 **3、AppClassLoader** 
 `Bootstrp loader`加载完`ExtClassLoader`后，就会加载`AppClassLoader`,并且将AppClassLoader的父加载器指定为 ExtClassLoader。AppClassLoader也是用Java写成的，它的实现类是 `sun.misc.Launcher$AppClassLoader`，另外我们知道ClassLoader中有个getSystemClassLoader方法,此方法返回的正是AppclassLoader.`AppClassLoader`主要负责**加载classpath所指定的位置的类或者是jar文档**，它也是Java程序默认的类加载器。
@@ -230,12 +230,13 @@ null
  * 每个类加载器都有自己的命名空间，命名空间由该加载器及所有父加载器所加载的类组成。
  * 在同一个命名空间中，不会出现类的完整名字（包括类的包名）相同的两个类。意思就是不会出现两个相同的类。
  * 在不同的命名空间中，有可能会出现类的完整名字（包括类的包名）相同的两个类。意思是可能出现多个相同的类。
+ * 如果一个class被加载了两次，加载到了不同命名空间，那么他们也不算是一个类，他们是不能进行相互赋值的。意思是不同命名空间的相同名字的类算作两个不同的类。在运行期，一个Java类是由该类的全限定类名（binary name）和用于加载该类的定义类加载器（definer loader）所共同决定的。如果同样的名字（全限定类名）的类是由两个不同的类加载器加载的，那么这些类就是不同的，即使.class文件的字节码一样，并且从相同位置加载，亦是如此。
 
 
 
 ​	当类加载器之间存在层级关系后，他们的命名空间就成了一个。（子类加载器包含父类加载器，他们是委派的关系）
 
-
+​	
 
 **命名空间产生的一些问题：**
 
@@ -243,7 +244,9 @@ null
 
 ​	**如果`A类`引用了`B`类，`A类`是由系统加载器加载的，`B类`是由自定义加载器加载的，那么在运行时就会报错，因为系统类加载器的命名空间中不自定义加载器命名空间中的类（`B类`）；或者`A类`和`B类`是由两个不同的自定义加载器分别加载的，也会产生命名空间问题。**
 
-​	**子加载器所加载的类能够访问到父加载器加载的类，但父加载器加载的类无法访问到子加载器所加载的类。**
+​	**同一个命名空间的类是相互可见的。子加载器所加载的类能够访问到父加载器加载的类，但父加载器加载的类无法访问到子加载器所加载的类。**
+
+
 
 
 
@@ -274,9 +277,60 @@ DriverMannager.getCallerClassLoader();
 
 ​	关于自定义类加载器，需要重写`ClassLoader#findClass`方法，并且提供自己的`loadClassData`加载类的方法（可能从某一位置读取返回一个字节数组）。
 
-​	**如果`A类`中引用了`B类`，`B类`一般会由加载了`A类`的类加载器进行加载（会遵循双亲委派机制）。比如`A类`由自定义类加载器加载，`B类`的加载，会遵循双亲委派机制，自顶向下进行尝试加载，依次是根类加载器、扩展类加载器、系统加载器、自定义加载器；如果`A类`是由系统加载器加载的，那么`B类`的加载会自顶向下尝试，依次是根类加载器、扩展类加载器、系统加载器。**
+​	**如果`A类`中引用了`B类`，`B类`一般会由加载了`A类`的类加载器（当前类加载器（Current ClassLoader））进行加载（会遵循双亲委派机制）。比如`A类`由自定义类加载器加载，`B类`的加载，会遵循双亲委派机制，自顶向下进行尝试加载，依次是根类加载器、扩展类加载器、系统加载器、自定义加载器；如果`A类`是由系统加载器加载的，那么`B类`的加载会自顶向下尝试，依次是根类加载器、扩展类加载器、系统加载器。**
 
-​	
+​	这地单独说一下启动类加载器，启动类加载器不是java类，是C++编写的，她负责加载第一个纯java类（类加载的开始），和加载提供JRE正常运行的基本组件，包括java.util于java.lang包中的类等等。
+
+
+
+##### 线程上下文类加载器（Context ClassLoader）
+
+​	since 1.2；如果没有通过`Thread#setCotextClassLoader`进行设置的话，线程将继承其父线程的上下文类加载器，Java应用运行的初始线程的上下文加载器是**系统类加载器**，在线程中运行的代码可以通过该类加载器来加载类和资源。
+
+
+
+**线程上下文类加载器的重要性：**
+
+​	SPI（Service Provider Interface）,比如说JDBC接口是由根类加载器加载的，而厂商的实现类是有系统类加载器加载的，由于父类加载器是看不到子类加载器加载的类，就会存在一些问题。
+
+​	父ClassLoader可以使用当前线程`Thread#currentThread#getContextClassLoader`所指定的classLoader加载类，这就改变了父ClassLoader不能使用子ClassLoader或是其他没有直接父子关系的ClassLoader加载类的情况，即改变了双亲委托模型。
+
+​	线程上下文类加载器就是当前线程的Current ClassLoader。
+
+​	在双亲委托模型下，类加载器是由上至下的，即下层的类加载器会委托上层进行加载。但是对于SPI来说，有些接口是Java核心类提供的，而Java核心库s是由启动类加载器来加载的，而这些接口的实现却是来自不同的jar包（厂商提供），Java的启动类加载器是不会加载来自其他来源的jar包，这样传统的双亲委托模型j就无法满足SPI的要求。而通过给当前线程设置上下文类加载器，就可由设置的上下文类加载来实现对于接口实现类的加载。
+
+​	在SPI处理中，`ServiceClassLoader`中加载了厂商实现的类，是使用线程上下文类加载器加载的。
+
+[SPI相关类](java.util.ServiceLoader)
+
+
+
+**线程上下文类加载器的一般是使用模式**
+
+获取——使用——还原
+
+```java
+ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+try {
+    Thread.currentThread().setContextClassLoader(targetTccl);
+    //getContextClassLoader(),然后做一些自己类加载的处理
+    myMethod();
+}finally {
+    Thread.currentThread().setContextClassLoader(classLoader);
+}
+```
+
+
+
+####双亲委托机制的好处
+
+* 可以确保Java核心类库的类型安全：所有的Java应用都至少引用java.lang.Object，也就是说在运行期，java.lang.Object这个类会被加载到Java虚拟机中；如果这个加载过程是由Java应用自己的类加载q器所完成的，那么很可能在JVM中存在多个版本的java.lang.Object类，而且这些类之间还是不兼容的，相互不可见的（命名空间的问题）。
+
+* 可以确保Java核心类库所提供的类不会被自定义的同名类所替代（自己定义的同名类不会被加载）
+
+* 不同的类加载器可以为相同名称（binary name）的类创建额外的命名空间。相同名称的类可以并存在Java虚拟机中，只需要用不同的类加载器来加载他们即可。不同类加载器所加载的类之间是不兼容的，这就相当于在Java虚拟机内部创建了一个有一个相互隔离的Java类空间，这些技术在很多框架中都得到了实际应用。
+
+
 
 ### 类加载过程的其他问题
 
