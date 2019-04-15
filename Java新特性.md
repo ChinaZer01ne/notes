@@ -350,11 +350,17 @@ Function<A, R> finisher();
 
 
 
-	> **A sequential implementation** of a reduction using a collector would **create a single result container using the supplier function**, **and invoke the accumulator** function once for each input element. **A parallel implementation** would partition the input, **create a result container for each partition**, **accumulate the contents** of each partition into a subresult for that partition, **and then use the combiner function** to merge the subresults into a combined result.
-	>
-	> ​								——java.util.stream.Collector
+> **A sequential implementation** of a reduction using a collector would **create a single result container using the supplier function**, **and invoke the accumulator** function once for each input element. **A parallel implementation** would partition the input, **create a result container for each partition**, **accumulate the contents** of each partition into a subresult for that partition, **and then use the combiner function** to merge the subresults into a combined result.
+>
+> ​												——java.util.stream.Collector
 
-一个单线程的collect是不会调用`Collector#combiner`方法的。 
+
+
+​	  一旦指定了`Characteristics.CONCURRENT`属性（执行了多次`accumulator`方法），就算是一个并行流，也只会存在一个`supplier`的集合对象。如果没有指定，串行流只存在一个`supplier`集合对象，而并行流会存在多个`supplier`集合对象。
+
+​	一个串行流的collect是不会调用`Collector#combiner`方法中返回的`BinaryOperator函数接口`的。 在并行流中，没有`Characteristics.CONCURRENT`属性，才会调用`Collector#combiner`方法。因为此时的串行流只存在一个`supplier`的集合对象。
+
+​      
 
 
 

@@ -494,6 +494,25 @@ git branch --set-upstream-to=[远程分支引用]
 
 
 
+## rebase
+
+​	不要在与其他人共享的分支上进行操作。不要对master分支执行rebase，否则会引起很多问题。
+
+​	一般来说，执行rebase的分支都是自己的本地分支，没有推送到远程版本库。
+
+```shell
+# 如果想把test上的修改变到dev上，那么就在test分支执行，git rebase dev，相当于把test新修改的基础变为dev
+git rebase [要变到的分支名]
+# 取消变基操作
+git rebase --abort
+# 可以忽略掉当前补丁（从最早的提交开始）
+git rebase --skip
+# 如果有冲突，解决然后添加，然后执行下面命令，表示继续rebase操作
+git rebase --continue
+```
+
+​	变基操作会生成一条路径，merge会表现为多条路径。
+
 
 
 ## 其他
