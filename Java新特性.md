@@ -370,7 +370,7 @@ Function<A, R> finisher();
 
 #### Collectors类
 
-jdk8提供了对集合操作的类Collectors。它提供了关于Collector的可变的汇聚操作，比如分组分区的功能。一般返回一个Collector对象。
+​	jdk8提供了对集合操作的类Collectors。它提供了关于Collector的可变的汇聚操作，比如分组分区的功能。一般返回一个Collector对象。是通过内部的CollectorImpl实现的。
 
 [详情请看](java.util.stream.Collectors)
 
@@ -396,7 +396,14 @@ https://blog.csdn.net/ycj_xiyang/article/details/83624642
 
 
 
+### 日期API
 
+```java
+LocalDate
+LocalTime
+Clock
+ZoneId
+```
 
 ## Java 11
 
