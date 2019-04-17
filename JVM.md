@@ -477,6 +477,7 @@ counter2 : 0
 ```shell
 javap -c [文件名]
 java -verbose [文件名]
+java -verbose -p [文件名] # 私有的也会显示
 ```
 
 ​	使用`java -verbose`命令分析一个字节码文件时，将会分析该字节码文件的魔数、版本号、常量池、访问信息、类信息、类的构造方法、类中的方法信息、类变量与成员变量等信息。
@@ -637,11 +638,11 @@ Code_attribute {
   	u2 attribute_name_index;
   	u4 attribute_length;
   	u2 local_variable_table_length;
-  	{   u2 start_pc;
-  		u2 length;
-  		u2 name_index;	
-  		u2 descriptor_index;
-  		u2 index;
+  	{   u2 start_pc;	# 这个局部变量的生命周期开始的字节码偏移量
+  		u2 length;	
+  		u2 name_index;	# 局部变量的名称索引
+  		u2 descriptor_index;	# 局部变量的描述符
+  		u2 index;	# 这个局部变量在栈帧局部变量中slot的位置，当这个变量的数据类型是64位类型时，它占用的slot为index和index+1两个位置
   	} local_variable_table[local_variable_table_length];
   }
   ```
@@ -677,7 +678,32 @@ Code_attribute {
 
 ## JVM内存模型
 
+### synchronized在字节码级别的实现
 
+synchronized对字节码的影响：
+
+​	对于一个普通方法和一个synchronized方法（静态方法和实例方法），在字节码上仅仅时访问标志（access_flags）不同，synchronized方法会多一个`ACC_SYNCHRONIZED`的访问标志，不过在运行的时候会隐式的添加`monitorenter`和`monitorexit`来实现锁定操作。
+
+​	对于一个同步代码块方法，字节码级别会显式的有`monitorenter`和`monitorexit`来实现锁定操作。
+
+```shell
+         0: aload_1
+         1: dup
+         2: astore_2
+         3: monitorenter	# 进入同步代码块，加锁
+         4: getstatic     
+         7: ldc           
+         9: invokevirtual 
+        12: aload_2
+        13: monitorexit	    # 退出同步代码块，释放锁
+        14: goto          
+        17: astore_3
+        18: aload_2
+        19: monitorexit		# 发生异常之前，释放锁，防止死锁
+        20: aload_3
+        21: athrow
+        22: return
+```
 
 
 
@@ -685,9 +711,9 @@ Code_attribute {
 
 ```shell
 -XX:+TraceClassLoading，用于追踪类的加载信息并打印出来
-* -XX:-<option> ： 关闭option选项
-* -XX:+<option> ： 开启option选项
-* -XX:<option>=<value>，表示将option赋值
+-XX:-<option> ： 关闭option选项
+-XX:+<option> ： 开启option选项
+-XX:<option>=<value>，表示将option赋值
 ```
 
 
