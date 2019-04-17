@@ -15,17 +15,23 @@
 
 ## 助记符
 
-- `ldc`：表示将int，float或是String类型的常量值从常量池中推送到栈顶。（表示接下来要使用）。相关类`com.sun.org.apache.bcel.internal.generic.LDC`
-- `iconst_`：对于`-1到5之间`，java虚拟机用（`iconst_m1`，`iconst_0`，`iconst_1`，`iconst_2`，`iconst_3`，`iconst_4`，`iconst_5`）来表示。表示将（`-1到5`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ICONST`
+- **ldc**：表示将int，float或是String类型的常量值从常量池中推送到栈顶。（表示接下来要使用）。相关类`com.sun.org.apache.bcel.internal.generic.LDC`
+- **iconst_**：对于`-1到5之间`，java虚拟机用（`iconst_m1`，`iconst_0`，`iconst_1`，`iconst_2`，`iconst_3`，`iconst_4`，`iconst_5`）来表示。表示将（`-1到5`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ICONST`
 
-- `bipush`：表示将单字节（`-128到127`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.BIPUSH`
+- **bipush**：表示将单字节（`-128到127`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.BIPUSH`
 
-- `sipush`：表示将短整形（`-32768到32767`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.SIPUSH`
+- **sipush**：表示将短整形（`-32768到32767`）的常量值推送至栈顶。相关类`com.sun.org.apache.bcel.internal.generic.SIPUSH`
 
   > 对于数字的优先级：const_、bipush、sipush
 
-* `newarray`：表示创建一个指定的原始类型（如：int、float、char等）的数组，并将其引用值压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.NEWARRAY`
-* `anewarray`：表示创建一个引用类型的（如类、接口、数组）数组，并将其压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ANEWARRAY`
+* **newarray**：表示创建一个指定的原始类型（如：int、float、char等）的数组，并将其引用值压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.NEWARRAY`
+
+* **anewarray**：表示创建一个引用类型的（如类、接口、数组）数组，并将其压入栈顶。相关类`com.sun.org.apache.bcel.internal.generic.ANEWARRAY`
+
+* **invokespecial**：调用父类构造方法。
+
+* **aload_**：从局部变量表的相应位置装载一个对象引用到操作数栈的栈顶。aload_索引，表示把对应索引的引用推送到栈顶。`aload_0`是吧`this`引用推送到栈顶。
+
 
 ## 类加载
 
@@ -473,19 +479,199 @@ javap -c [文件名]
 java -verbose [文件名]
 ```
 
-​	使用`java -verbose`命令分析一个字节码文件时，将会分析该字节码文件的魔数、版本号、常量值、类信息、类的构造方法、类中的方法信息、类变量与成员变量等信息。
-
-​	**魔数**：所有的`.class`字节码文件的前四个字节都是魔数，魔数值为固定值：`0xCAFEBABE`。
-
-​	**版本信息**：魔数之后的四个字节表示版本号，前两个字节表示次版本号（minjor version），后两个字节表示主版本号（major version）。比如`0000 0034`代表次版本号为0，主版本号为52（十进制）。所以该文件的版本号为：1.8.0（52对应的是jdk8，51对应7，以此类推）。可以通过`java -version`来验证。低版本的jdk编译在高版本是无法运行的，反之是可以运行的。
-
-​	**常量池（constant pool）**：紧接着主版本号之后的就是常量池入口。一个Java类中定义的很多信息都是由常量池来维护和描述的，可以将常量池看作是Class文件的资源仓库，比如说Java类中定义的方法与变量信息，都是存储在常量池中。常量池中主要存储两类变量：字面量和符号引用。字面量如文本字符串，Java中声明为final的常量值等，而符号引用如类和接口的全局限定名，字段名称和描述符，方法名称和描述符等。
-
-​	常量池的总体结构：Java类对应的常量池主要由常量池数量与常量池数组这两部分构成。常量池数量紧跟在主版本号后面，占据2个字节；常量池数组则紧跟在常量池数量之后（类似Netty的自定义协议）。常量池数组与一般的数组不同的是，常量池数字组中不同的元素的类型、结构都是不同的，长度当然也就不同；但是每一种元素的第一个数据都是一个`u1类型`，该字节是个标志位，占据一个字节。JVM在解析常量池时，会根据这个u1类型来获取元素的具体类型。值得注意的是，常量池数组中的元素个数 = 常量池数量 - 1（其中0暂时不使用），目的是满足某些常量池索引值的数据在特定情况下需要表达`不引用任何一个常量池`的含义；根本原因在于，索引为0也是一个常量（保留常量），只不过它不位于常量表中，这个常量就对应null值；所以常量池的索引从1而非0开始。
-
-![img](images/JVM/常量池数据类型.jpg)
+​	使用`java -verbose`命令分析一个字节码文件时，将会分析该字节码文件的魔数、版本号、常量池、访问信息、类信息、类的构造方法、类中的方法信息、类变量与成员变量等信息。
 
 
+
+###字节码数据类型
+
+* 字节数据直接量：这是基本的数据类型。共细分为`u1、u2、u4、u8`四种，分别代表连续的1个字节，2个字节、4个字节、8个字节组成的整体数据。
+
+* 表（数组）：表是由多个基本数据或其他表，按照既定顺序组成的大的数据集合。表是有结构的，他的结构体现在：组成表的成分所在的位置和顺序都是已经严格定义好的，比如说常量池就是一个表。
+
+
+
+###字节码文件数据结构
+
+![字节码的整体结构](images/JVM/字节码的整体结构.png)
+
+
+
+![字节码的整体结构](images/JVM/字节码整体结构详.jpg)
+
+
+
+####魔数（Magic Number）
+
+​	所有的`.class`字节码文件的前四个字节都是魔数，魔数值为固定值：`0xCAFEBABE`。
+
+
+
+####版本信息（Version）
+
+​	魔数之后的四个字节表示版本号，前两个字节表示次版本号（minjor version），后两个字节表示主版本号（major version）。比如`0x0000 0x0034`代表次版本号为0，主版本号为52（十进制）。所以该文件的版本号为：1.8.0（52对应的是jdk8，51对应7，以此类推）。可以通过`java -version`来验证。低版本的jdk编译在高版本是无法运行的，反之是可以运行的。
+
+
+
+####常量池（Constant Pool）
+
+​	紧接着主版本号之后的就是常量池入口。一个Java类中定义的很多信息都是由常量池来维护和描述的，可以将常量池看作是Class文件的资源仓库，比如说Java类中定义的方法与变量信息，都是存储在常量池中。常量池中主要存储两类变量：字面量和符号引用。字面量如文本字符串，Java中声明为final的常量值等，而符号引用如类和接口的全局限定名，字段名称和描述符，方法名称和描述符等。
+
+​	常量池的总体结构：Java类对应的常量池主要由常量池数量与常量池数组这两部分构成。常量池数量紧跟在主版本号后面，占据2个字节；常量池数组则紧跟在常量池数量之后（类似Netty的自定义协议）。常量池数组与一般的数组不同的是，常量池数字组中不同的元素的类型、结构都是不同的，长度当然也就不同；但是每一种元素的第一个数据都是一个`u1类型`，该字节是个标志位，占据一个字节。JVM在解析常量池时，会根据这个u1类型来获取元素的具体类型。值得注意的是，常量池数组中的元素个数 = 常量池数量 - 1（其中0暂时不使用），目的是满足某些常量池索引值的数据在特定情况下需要表达**不引用任何一个常量池**的含义；根本原因在于，索引为0也是一个常量（保留常量），只不过它不位于常量表中，这个常量就对应null值；所以常量池的索引从1而非0开始。
+
+![img](images/JVM/常量池数据类型.png)
+
+> 上面表中描述了11中数据类型的结构，其实在jdk1.7之后又增加了3种（CONSTANT_MethodHandle_info，CONSTANT_MethodType_info以及CONSTANT_InvokeDynamic_info）。这样一共是14种。
+
+​	在JVM规范中，每个变量、字段都有描述信息，描述信息的主要作用是描述字段的数据类型、方法的参数列表（包括数量、类型与顺序）与返回值。根据描述符规则，基本数据类型和代表无返回值的void类型都用一个大写字符来表示，对象类型则使用字符L加对象的全限定类名（斜杠而不是点）来表示。为了压缩字节码文件的体积，对于基本数据类型，JVM都只使用一个大写字母来表示，如下所示：`B - byte、C - char、D - double、F - float、I - int、J - long、S - short、Z - boolean、V - void，L - 对象类型`，如`Ljava/lang/String`。
+
+​	对于数组类型来说，每一个维度使用一个前置的`[`来表示，如`int[]`被记录为`[I`，`String[][]`被记录为`[[Ljava/lang/Stirng`。
+
+​	用描述符来描述方法的时候，按照先参数列表，后返回值的顺序来描述。参数列表按照参数的严格顺序放在一组`()`之内，如方法：`String getRealnameByIdAndNickname(int id, String name)`的描述符为：`(I,Ljava/lang/String;)Ljava/lang/String;`。
+
+
+
+####访问标志（Access Flags）
+
+​	常量池信息完成接下来两个字节是访问标志。访问标志信息包括该Class文件是类还是接口，是否被定义成public，是否是abstract，如果是类，是否被声明成final。通过上面的源代码，我们知道该文件是类并且是public。对于访问修饰符的组合，会采用想加的数表示。access_flags 出现在class文件中的类的层面上， 那么它只能描述类型的修饰符， 而不能描述字段或方法的修饰符， 不要把这里的access_flags 和后面要介绍的方法表和字段表中的访问修饰符相混淆。
+
+| 标志名         | **标志值** | **标志含义**              | **针对的对像** |
+| -------------- | ---------- | ------------------------- | -------------- |
+| ACC_PUBLIC     | 0x0001     | public类型                | 所有类型       |
+| ACC_FINAL      | 0x0010     | final类型                 | 类             |
+| ACC_SUPER      | 0x0020     | 使用新的invokespecial语义 | 类和接口       |
+| ACC_INTERFACE  | 0x0200     | 接口类型                  | 接口           |
+| ACC_ABSTRACT   | 0x0400     | 抽象类型                  | 类和接口       |
+| ACC_SYNTHETIC  | 0x1000     | 该类不由用户代码生成      | 所有类型       |
+| ACC_ANNOTATION | 0x2000     | 注解类型                  | 注解           |
+| ACC_ENUM       | 0x4000     | 枚举类型                  | 枚举           |
+
+
+
+####类名（This Class Name）
+
+​	紧接着访问标识后面两个字节表示了类名，他指向了来自常量池中的类索引。
+
+
+
+####父类名（Super Class Name）
+
+​	紧接着类名后面两个字节表示了父类名，他指向了来自常量池中的父类的索引。
+
+
+
+####接口信息（Interfaces）
+
+​	紧接着父类名后面表示了接口信息，它包含了**接口数量和接口表**两部分，其中前两个字节表示接口的数量，该类不存在接口则这两个字节为`0x0000`；否则，接口数量后面再跟着接口名称，每个接口名占两个字节，他指向了来自常量池中的接口的索引。 
+
+
+
+####字段信息（Fields）
+
+​	在接口信息之后跟着字段信息，字段信息包括**字段个数和字段表（field_info）**两部分；字段数量占两个字节，字段表结构如下图所示。字段表用于描述类和接口中声明的变量。这里的字段包含了类级别变量以及实例变量，但是不包括方法内部声明的局部变量。
+
+![字段表数据结构](images/JVM/字段表数据结构.png)
+
+>  注：如果`attributes_count`值为`0x0000`则说明该字段是没有`attribute_info`信息的，整个字段信息（Fields）结束。
+
+
+
+####方法信息（Methods）
+
+​	在字段信息（Fields）完成之后就是方法信息。与字段信息类似，方法信息包括**方法个数和方法表（method_info）**两部分。方法数量占两个字节，方法表结构（与字段表结构类似）如下图所示。
+
+![方法表数据结构](images/JVM/方法表数据结构.png)
+
+​	方法中的属性信息都是一个`attribute_info`结构，结构如下，前两个字节是名字索引、接着 4 个字节是属性长度、接着是属性的值（info）。
+
+![方法属性数据结构](images/JVM/方法属性数据结构.png)
+
+​	这里前两个字节为 `0x0009`，指向了常量池第9个常量，查询可知其值为Code（撰写本文时的测试下的情况）
+
+* `attribute_name_index`指向了`Code`的表示这是一个`Code attribute`，`Code attribute`的作用是保存该方法的结构，说明此属性是方法的字节码描述。 **Code 属性的表结构**如下：
+
+![Code attribute数据结构](images/JVM/Code attribute数据结构.png)
+
+> 注意：`max_statk`往下的所有属性对应了属性信息的`info`字段
+
+```json
+# 详细Code属性的表结构
+Code_attribute {
+    u2 attribute_name_index;
+    u4 attribute_length;	# 表示attribute所包含的字节数，不包含attribute_name_index和attribute_length。
+    u2 max_stack;	# 表示这个方法运行的任何时刻所能达到的操作数栈的最大深度。
+    u2 max_locals;	# 表示方法执行期间创建的局部变量的数目，包含传入的参数的局部变量（方法参数）。
+    u4 code_length;	# 表示该方法所包含的字节码的字节数以及具体的指令码。
+    u1 code[code_length];	# 该方法被调用时，虚拟机所执行的字节码
+    u2 exception_table_length;	
+    {   u2 start_pc;
+        u2 end_pc;
+        u2 handler_pc;
+        u2 catch_type;
+    } exception_table[exception_table_length];	# 这里存放的是处理异常的信息。
+    u2 attributes_count;
+    attribute_info attributes[attributes_count];
+}
+```
+
+
+
+​	exception_table结构包含`start_pc、end_pc、handler_pc、catch_type`。`start_pc`和`end_pc`表示在code数组中的从`start_pc`到`end_pc`处（包含`start_pc`，不包含`end_pc`）的指令抛出的异常会由智哥表项来处理。`handler_pc`表示处理异常的代码开始处。`catch_type`表示会被处理的异常类型，它指向常量池里的一个异常类。当`catch_type`为`0`时，表示处理所有的异常。
+
+
+
+*  `attribute_name_index`如果指向了`LineNumberTable`的表示这是一个`LineNumberTable attribute`。这个属性用来表示`Code`数组中的字节码和Java代码行数之间的映射关系。这个属性可以用来在调试时候定位代码执行的行数。
+
+![LineNumberTable数据结构](images/JVM/LineNumberTable数据结构.png)
+
+​	line_number_info结构包含`start_pc、line_number`两个属性，比如：`start_pc`是`0x00`，`line_number`是`0x03`，这表示字节码的第0行对应源代码第三行。
+
+![Line_number_info数据结构](images/JVM/line_number_info数据结构.png)
+
+
+
+* `attribute_name_index`如果指向了`LocalVariableTable`，表示这是一个`LocalVariableTable attribute`。用来描述栈帧中局部变量表中的变量与Java源码中定义的变量之间的关系，非运行时必须属性。
+
+  ```json
+  LocalVariableTable_attribute {
+  	u2 attribute_name_index;
+  	u4 attribute_length;
+  	u2 local_variable_table_length;
+  	{   u2 start_pc;
+  		u2 length;
+  		u2 name_index;	
+  		u2 descriptor_index;
+  		u2 index;
+  	} local_variable_table[local_variable_table_length];
+  }
+  ```
+
+
+> JVM与定义了部分attribute，但是编译器自己也可以实现自己的attribute写入class文件，供运行时使用。不同的attribute通过`attribute_name_index`来区分。
+
+​	
+
+####附加属性信息（Attributes）
+
+​	最后剩下的部分就是附加属性信息，注意，这里的附加属性信息区别于上面的类的属性表，这是属于类的内容。他由**属性数量和属性表**组成。前两个字节表示属性的数量，然后是属性表，属性表（attribute_info ）的数据结构如下：
+
+![类属性表数据结构](images/JVM/类属性表数据结构.png)
+
+​	前两个字节为属性名称索引，然后四个字节是属性长度，最后是属性信息，如果这个属性信息指向了`SourceFile`，那么这就是一个`SourceFile attribute`，SourceFile 属性的表结构如下图所示。
+
+
+
+![SourceFile属性表数据结构](images/JVM/SourceFile属性表数据结构.png)
+
+
+
+---
+
+**注：以上出现的索引都指向了常量池中的字面量或者是符号引用。**
+
+
+
+[字节码查看工具jclasslib](https://github.com/ingokegel/jclasslib)
 
 
 
