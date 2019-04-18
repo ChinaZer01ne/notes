@@ -13,6 +13,12 @@
 
 
 
+## JVM运行时区域
+
+JVM运行时区域包括：程序计数器、虚拟机栈、本地方法栈、堆、方法区
+
+
+
 ## 字节码指令
 
 - **ldc**：表示将int，float或是String类型的常量值从常量池中推送到栈顶。（表示接下来要使用）。相关类`com.sun.org.apache.bcel.internal.generic.LDC`
