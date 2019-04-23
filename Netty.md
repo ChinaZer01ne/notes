@@ -8,17 +8,35 @@
 
 代码在`MultithreadEventExecutorGroup`类中的`EventExecutor[] children`体现，`EventExecutor`是`EventLoop`的父类。
 
+​	我们一般使用`NioEventLoopGroup`，它继承了`MultithreadEventExecutorGroup`，属性`EventExecutor`是个多个
+
+`NioEventLoop`的数据，这个类继承了`SingleThreadEventLoop`。
+
+​	意思是：一个`MultithreadEventExecutorGroup`包含了多个`SingleThreadEventLoop`。
+
 **2、一个`EventLoop`在它的整个生命周期中都只会与唯一一个`Thread`进行绑定。**
 
-具体体现在`SingleThreadEventExecutor`类中的`Thread thread`属性，这个执行事件循环的线程（调用handler回调方法），就是I/O线程。
+具体体现在`SingleThreadEventExecutor`类中的`Thread thread`属性，这个执行事件循环的线程（调用handler回调方法），就是I/O线程。这个属性是在`bind()`执行时，调用的`SingleThreadEventExecutor`类中的`doStartThread()`来赋值的。
+
+```java
+SingleThreadEventExecutor.this.thread = Thread.currentThread();
+```
+
+
 
 **3、所有由`EventLoop`所处理的各种I/O事件都将在它所关联的那个`Thread`上进行处理。**
 
 **4、一个`Channel`在它的生命周期中只会注册在一个`EventLoop`上。**
 
-也就是说，一个`Channel`的`Handler`只会由同一个`Thread`来执行，不存在多线程问题。
+​	也就是说，一个`Channel`的`Handler`只会由同一个`Thread`来执行，不存在多线程问题。
 
-**5、一个`EventLoop`在运行过程当中，会被分配给一个或者多个`Channel`（一个EventLoop会处理很多Channel）。**
+​	`DefaultPromise`中有`eventLoop`属性和`channel`属性，在`bind()`方法执行，进行注册的时候，会将两者关联起来。
+
+​	`Channel`是在`ServerBootStrap`或者`BootStrap`调用`channel()`方法指定的，比如`NioServerSocketChannel`，这个`Channel`是通过`ReflectiveChannelFactory`来构建的。
+
+
+
+**5、一个`EventLoop`在运行过程当中，会被分配一个或者多个`Channel`（一个EventLoop会处理很多Channel）。**
 
 
 
