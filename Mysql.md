@@ -233,7 +233,7 @@ init_connect='SET NAMES utf8'
 
 3. **辅助索引树非叶节点非（蓝色）**
    1. 子节点里存储的辅助键值里的最小的值（Min Secondary-Key on Child），这是B+树必须的，作用是在一个Page里定位到具体的记录的位置。
-   2. 主键值（Cluster Key Fields），非叶子节点为什么要存储主键呢？因为辅助索引是可以不唯一的，但是B+树要求键的值必须唯一，所以这里把辅助键的值和主键的值合并起来作为在B+树中的真正键值，保证了唯一性。但是这也导致在辅助索引B+树中非叶节点反而比叶子节点多了4个字节。（即下图中蓝色节点反而比红色多了4字节）
+   2. 主键值（Cluster Key Fields），非叶子节点为什么要存储主键(InnoDB要求主键和辅助索引聚集，而MyISAM不需要)呢？因为辅助索引是可以不唯一的，但是B+树要求键的值必须唯一，所以这里把辅助键的值和主键的值合并起来作为在B+树中的真正键值，保证了唯一性。但是这也导致在辅助索引B+树中非叶节点反而比叶子节点多了4个字节。（即下图中蓝色节点反而比红色多了4字节）
    3. 最小的值所在的Page的编号（Child Page Number），作用是定位Record。
 
 4. **辅助索引树叶子节点（红色）**
@@ -253,6 +253,274 @@ init_connect='SET NAMES utf8'
 ​	把上图还原成下面这个更简洁的树形示意图，这就是B+树的一部分。注意**Page和B+树节点之间并没有一一对应的关系**，Page只是作为一个Record的保存容器，它存在的目的是便于对磁盘空间进行批量管理，上图中的编号为47的Page在树形结构上就被拆分成了两个独立节点。
 
 ![简图](images/mysql/简图)
+
+
+
+
+
+### 复合索引
+
+
+
+#### 定义
+
+​	 单一索引是指索引列为一列的情况,即新建索引的语句只实施在一列上;     用户可以在多个列上建立索引,这种索引叫做复合索引(组合索引);     复合索引在数据库操作期间所需的开销更小,可以代替多个单一索引;     同时有两个概念叫做窄索引和宽索引,窄索引是指索引列为1-2列的索引,宽索引也就是索引列超过2列的索引;     设计索引的一个重要原则就是能用窄索引不用宽索引,因为窄索引往往比组合索引更有效;
+
+
+
+#### 怎么用
+
+创建索引     `create index idx1 on table1(col1,col2,col3) `     查询     `select * from table1 where col1= A and col2= B and col3 = C`     这时候查询优化器,不在扫描表了,而是直接的从索引中拿数据,因为索引中有这些数据,这叫覆盖式查询,这样的查询速度非常快;  
+
+
+
+#### 匹配规则
+
+
+
+场景：titles表的主索引为**<emp_no, title, from_date>**
+
+
+
+* **全列匹配(此时若没有按照索引顺序时，mysql查询优化器会自动的调整顺序来使用定义好的索引)**
+
+  ```mysql
+  SELECT * FROM employees.titles WHERE emp_no='10001' AND title='Senior Engineer' AND from_date='1986-06-26';
+  
+  SELECT * FROM employees.titles WHERE from_date='1986-06-26' AND emp_no='10001' AND title='Senior Engineer';
+  ```
+
+  理论上索引对顺序是敏感的，但是由于MySQL的查询优化器会自动调整where子句的条件顺序以使用适合的索引，所以效果是一样的。
+
+* **最左前缀匹配**
+
+  ```mysql
+  SELECT * FROM employees.titles WHERE emp_no='10001';
+  ```
+
+  当**查询条件精确匹配索引的左边连续一个或几个列时**，如<emp_no>或<emp_no, title>，所以可以被用到，但是只能用到一部分，即条件所组成的最左前缀。
+
+* **查询条件用到了索引中列的精确匹配，但是中间某个条件未提供**
+
+  ```mysql
+  SELECT * FROM employees.titles WHERE emp_no='10001' AND from_date='1986-06-26';
+  ```
+
+  此时索引使用情况和情况二相同，**因为title未提供，所以查询只用到了索引的第一列，而后面的from_date虽然也在索引中，但是由于title不存在而无法和左前缀连接**，因此需要对结果进行扫描过滤from_date（这里由于emp_no唯一，所以不存在扫描）。如果想让from_date也使用索引而不是where过滤，可以增加一个辅助索引<emp_no, from_date>，此时上面的查询会使用这个索引。除此之外，还可以使用一种称之为“隔离列”的优化方法，将emp_no与from_date之间的“坑”填上。
+
+  如果缺失的字段包含的列值比较少，可以使用`IN`来达到走索引的效果，如
+
+  ```mysql
+  # title 的值只有着三种，构造完成了全列匹配，走索引
+  SELECT * FROM employees.titles
+  WHERE emp_no='10001'
+  AND title IN ('Senior Engineer', 'Staff', 'Engineer')
+  AND from_date='1986-06-26';
+  ```
+
+  当然，如果缺失的字段的值很多，用这种方法就不合适了，必须建立辅助索引。
+
+* **查询条件没有指定索引第一列**
+
+  ```mysql
+  SELECT * FROM employees.titles WHERE from_date='1986-06-26';
+  ```
+
+  由于不是最左前缀，索引这样的查询显然用不到索引。
+
+* **匹配某列的前缀字符串**
+
+  ```mysql
+   SELECT * FROM employees.titles WHERE emp_no='10001' AND title LIKE 'Senior%';
+  ```
+
+  此时可以用到索引，但是如果通配符%不出现在开头，则可以用到索引。
+
+* **范围查询(范围查询后面的列将无法使用索引)**
+
+  ```mysql
+  SELECT * FROM employees.titles WHERE emp_no < '10010' and title='Senior Engineer';
+  ```
+
+  范围列可以用到索引（必须是最左前缀），但是范围列后面的列无法用到索引。同时，索引最多用于一个范围列，因此如果查询条件中有两个范围列则无法全用到索引。
+
+  如：
+
+  ```mysql
+  SELECT * FROM employees.titles
+  WHERE emp_no < '10010'
+  AND title='Senior Engineer'
+  AND from_date BETWEEN '1986-01-01' AND '1986-12-31';
+  ```
+
+  可以看到索引对第二个范围索引无能为力。这里特别要说明MySQL一个有意思的地方，那就是仅用explain可能无法区分范围索引和多值匹配，因为在type中这两者都显示为range。同时，用了“between”并不意味着就是范围查询，例如下面的查询：
+
+  ```mysql
+  SELECT * FROM employees.titles
+  WHERE emp_no BETWEEN '10001' AND '10010'
+  AND title='Senior Engineer'
+  AND from_date BETWEEN '1986-01-01' AND '1986-12-31';
+  ```
+
+  看起来是用了两个范围查询，但作用于emp_no上的“BETWEEN”实际上相当于“IN”，也就是说emp_no实际是多值精确匹配。可以看到这个查询用到了索引全部三个列。因此在MySQL中要谨慎地区分多值匹配和范围匹配，否则会对MySQL的行为产生困惑。
+
+* **查询条件中含有函数或表达式**
+
+  如果查询条件中含有函数或表达式，则MySQL不会为这列使用索引（虽然某些在数学意义上可以使用）。例如：
+
+  ```mysql
+  
+  ```
+
+
+
+  虽然这个查询和情况五中功能相同，但是由于使用了函数left，则无法为title列应用索引，而情况五中用LIKE则可以。
+
+
+
+  ```mysql
+  
+  ```
+
+
+
+  显然这个查询等价于查询emp_no为10001的函数，但是由于查询条件是一个表达式，MySQL无法为其使用索引。看来MySQL还没有智能到自动优化常量表达式的程度，因此在写查询语句时尽量避免表达式出现在查询中，而是先手工私下代数运算，转换为无表达式的查询语句。
+
+
+
+#### 问题
+
+
+
+**何时是用复合索引 ？**
+
+​	根据where条件建索引是极其重要的一个原则;     注意不要过多用索引,否则对表更新的效率有很大的影响,因为在操作表的时候要化大量时间花在创建索引中
+
+
+
+**复合索引会替代单一索引么？**
+
+​        如果索引满足窄索引的情况下可以建立复合索引,这样可以节约空间和时间
+
+
+
+**只要查询语句需要，就建立索引？**
+
+一般两种情况下不建议建索引。
+
+* 表记录比较少，例如一两千条甚至只有几百条记录的表，没必要建索引，让查询做全表扫描就好了。至于多少条记录才算多，这个个人有个人的看法，我个人的经验是以2000作为分界线，记录数不超过 2000可以考虑不建索引，超过2000条可以酌情考虑索引。
+
+* 索引的选择性较低。所谓索引的选择性（Selectivity），是指不重复的索引值（也叫基数，Cardinality）与表记录数（#T）的比值：
+
+  `Index Selectivity = Cardinality / #T`
+
+
+
+  显然选择性的取值范围为(0, 1]，选择性越高的索引价值越大，这是由B+Tree的性质决定的。例如，上文用到的employees.titles表，如果title字段经常被单独查询，是否需要建索引，我们看一下它的选择性：
+
+  ```mysql
+  SELECT count(DISTINCT(title))/count(*) AS Selectivity FROM employees.titles;
+  +-------------+
+  | Selectivity |
+  +-------------+
+  | 0.0000 |
+  +-------------+
+  ```
+
+  title的选择性不足0.0001（精确值为0.00001579），所以实在没有什么必要为其单独建索引。
+
+
+
+#### 索引优化策略：前缀索引
+
+
+
+[复合索引之最左前缀原理，索引选择性，索引优化策略之前缀索引](https://www.cnblogs.com/duanxz/p/5244736.html)
+
+
+
+### 覆盖索引
+
+如果一个索引包含(或覆盖)所有需要查询的字段的值，称为‘覆盖索引’。
+
+
+
+如：**联合索引<name,age>**
+
+```mysql
+# 这个很明显走了索引
+SELECT * from test_condition where `name`='test100'
+
+# 如果test_condition表中只有id,name,age列，就满足了覆盖索引的条件
+SELECT * from test_condition where age = 30
+# 或者直接这样，也走覆盖索引
+SELECT name,age from test_condition where age = 30
+```
+
+
+
+### InnoDB存储引擎——自适应哈希索引
+
+​	哈希（hash）是一种非常快的查找方法，在一般情况下这种查找的时间复杂度为O(1)，即一般仅需要一次查找就能定位数据。 
+而B+树的查找次数，取决于B+树的高度，在生产环境中，B+树的高度一般为3~4层，所以需要3~4次的查询。
+
+​	InnoDB存储引擎会监控对表上各索引页的查询。如果观察到建立哈希索引可以带来速度提升，则建立哈希索引，称之为自适应哈希索引(Adaptive Hash Index, AHI)。AHI是通过缓冲池的B+树页构造而来，因此建立的速度很快，而且不需要对整张表构建哈希索引。InnoDB存储引擎会自动根据访问的频率和模式来自动地为某些热点页建立哈希索引。
+
+​	AHI有一个要求，对这个页的连续访问模式必须是一样的。例如对于(a,b)这样的联合索引页，其访问模式可以是下面情况： 
+
+* where a=xxx 
+* where a =xxx and b=xxx 
+
+
+
+​	访问模式一样是指查询的条件是一样的，若交替进行上述两种查询，那么InnoDB存储引擎不会对该页构造AHI。 
+​	AHI还有下面几个要求： 
+
+* 以该模式访问了100次 
+* 页通过该模式访问了N次，其中`N = 页中记录 * 1/16`
+
+
+
+​	InnoDB存储引擎官方文档显示，启用AHI后，读取和写入速度可以提高2倍，辅助索引的连接操作性能可以提高5倍。AHI的设计思想是数据库自优化，不需要DBA对数据库进行手动调整。
+
+```mysql
+
+mysql> show engine innodb status
+
+# 部分输出
+-------------------------------------
+INSERT BUFFER AND ADAPTIVE HASH INDEX
+-------------------------------------
+Ibuf: size 1, free list len 0, seg size 2, 0 merges
+merged operations:
+ insert 0, delete mark 0, delete 0
+discarded operations:
+ insert 0, delete mark 0, delete 0
+Hash table size 276671, node heap has 0 buffer(s)
+0.00 hash searches/s, 0.00 non-hash searches/s
+
+```
+
+​	可以看到AHI的使用信息，包括AHI的大小，使用情况，每秒使用AHI搜索的情况。 
+​	哈希索引只能用来搜索等值的查询，如：
+
+​		`select * from table where index_col=’xxx’; `
+
+​	对于其它类型的查找，比如范围查找，是不能使用哈希索引的，因此这里出现了non-hash searches/s的情况。通过hash searches/s和non-hash searches/s可以大概了解使用哈希索引后的效率。
+
+​	可以通过参数`innodb_adaptive_hash_index`来考虑禁用或启动此特性，默认是开启状态。
+
+```mysql
+
+mysql> show variables like 'innodb_adaptive_hash_index';
+
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_adaptive_hash_index | ON    |
++----------------------------+-------+
+1 row in set (0.00 sec)
+```
 
 
 
@@ -302,15 +570,36 @@ init_connect='SET NAMES utf8'
 
 
 
+### 创建”索引”的利与弊
+
+
+
+**优势**：
+
+能够保证数据每一行的唯一性
+合理运用时加快数据的查询速度
+增强表与表之间的链接，参考完整性
+减少分组、排序等操作的查询时间
+优化查询过程，提高系统性能
+**弊端**：
+
+创建、维护索引的时间会随着数据量的增加而增加
+自然，索引也是需要占据物理空间的
+增删改查数据的时候，也会由于索引的存在而增加时间，类似于多了一个属性，也会降低表更新的速度
+
+
+
+
+
 ## MyISAM与InnoDB区别
 
 1. **InnoDB支持事务，MyISAM不支持事务。**对于InnoDB每一条SQL语句都默认封装成事务，自动提交，这样会影响速度，所以最好把多条SQL语句放在begin和commit之间，组成一个事务。
 
 2. **InnoDB支持外键，而MyISAM不支持。**对于一个包含外键的InnoDB表转为MyISAM会失败。
 
-3. **InnoDB是聚簇索引**，使用B+Tree作为索引结构，**数据文件是和主键索引绑在一起**表数据文件本身就是按B+Tree组织的一个索引结构），必须要有主键，通过主键索引效率很高。但是辅助索引需要两次查询，先查询到主键，然后再通过主键查询到数据。因此，主键不应该过大，因为主键太大，其他索引也都会很大。
+3. **InnoDB是聚簇索引**，使用B+Tree作为索引结构，**数据文件是和主键索引绑在一起**表数据文件本身就是按B+Tree组织的一个索引结构），必须要有主键，通过主键索引效率很高。但是辅助索引需要两次查询，先查询到主键，然后再通过主键查询到数据。因此，主键不应该过大，因为主键太大，其他索引也都会很大。因此InnoDB 的索引能提供一种非常快速的主键查找性能。不过，它的辅助索引（Secondary Index， 也就是非主键索引）也会包含主键列。
 
-    **MyISAM是非聚簇索引**，也是使用B+Tree作为索引结构，**索引和数据文件是分离的**，索引保存的是数据文件的指针。主键索引和辅助索引是独立的。
+    **MyISAM是非聚簇索引**，也是使用B+Tree作为索引结构，**索引和数据文件是分离的**，索引保存的是数据文件的指针。主键索引和辅助索引是独立的。**在MyISAM中，主索引和辅助索引（Secondary key）在结构上没有任何区别，只是主索引要求key是唯一的，而辅助索引的key可以重复。**
 
    也就是说：**InnoDB的B+树主键索引的叶子节点就是数据文件，辅助索引的叶子节点是主键的值；而MyISAM的B+树主键索引和辅助索引的叶子节点都是数据文件的地址指针。**
 
@@ -393,8 +682,8 @@ init_connect='SET NAMES utf8'
 
 ​	对数据的操作其实只有两种，也就是读和写，而数据库在实现锁时，也会对这两种操作使用不同的锁；InnoDB 实现了标准的行级锁，也就是共享锁（Shared Lock）和互斥锁（Exclusive Lock）；共享锁和互斥锁的作用其实非常好理解：
 
-- **共享锁（读锁）**：允许事务对一条行数据进行读取；
-- **互斥锁（写锁）**：允许事务对一条行数据进行删除或更新；
+- **共享锁（读锁）**：允许事务对一条行数据进行读取；**select …… lock in share mode;** 
+- **互斥锁（写锁）**：允许事务对一条行数据进行删除或更新；**select …… for update;**
 
 
 
@@ -880,6 +1169,241 @@ ISO 和 ANIS SQL 标准制定了四种事务隔离级别，而 InnoDB 遵循了 
  [MYSQL性能优化的最佳20+条经验](https://www.cnblogs.com/zhouyusheng/p/8038224.html)
 
 
+
+### MySQL 性能优化神器 Explain 使用分析
+
+
+
+#### EXPLAIN 输出格式
+
+```mysql
+mysql> explain select * from user_info where id = 2
+
+/*
+id: 1
+select_type: SIMPLE
+table: user_info
+partitions: NULL
+type: const
+possible_keys: PRIMARY
+key: PRIMARY
+key_len: 8
+ref: const
+rows: 1
+filtered: 100.00
+Extra: NULL
+1 row in set, 1 warning (0.00 sec)
+*/
+```
+
+各列的含义如下:
+
+* id: SELECT 查询的标识符. 每个 SELECT 都会自动分配一个唯一的标识符
+* select_type: SELECT 查询的类型。
+* table: 查询的是哪个表
+* partitions: 匹配的分区
+* type: join 类型
+* possible_keys: 此次查询中可能选用的索引
+* key: 此次查询中确切使用到的索引.
+* ref: 哪个字段或常数与 key 一起被使用
+* rows: 显示此查询一共扫描了多少行. 这个是一个估计值
+* filtered: 表示此查询条件所过滤的数据的百分比
+* extra: 额外的信息
+
+
+
+接下来我们来重点看一下比较重要的几个字段
+
+
+
+#### select_type
+
+`select_type` 表示了查询的类型, 它的常用取值有:
+
+* SIMPLE, 表示此查询不包含 UNION 查询或子查询
+* PRIMARY, 表示此查询是最外层的查询
+* UNION, 表示此查询是 UNION 的第二或随后的查询
+* DEPENDENT UNION, UNION 中的第二个或后面的查询语句, 取决于外面的查询
+* UNION RESULT, UNION 的结果
+* SUBQUERY, 子查询中的第一个 SELECT
+* DEPENDENT SUBQUERY: 子查询中的第一个 SELECT, 取决于外面的查询. 即子查询依赖于外层查询的结果
+
+
+
+​	最常见的查询类别应该是 `SIMPLE` 了, 比如当我们的查询没有子查询, 也没有 UNION 查询时, 那么通常就是 `SIMPLE` 类型。
+
+​	如果我们使用了 UNION 查询, 那么 EXPLAIN 输出 的结果类似如下:
+
+```mysql
+mysql> EXPLAIN (SELECT * FROM user_info  WHERE id IN (1, 2, 3))
+    -> UNION
+    -> (SELECT * FROM user_info WHERE id IN (3, 4, 5));
++----+--------------+------------+------------+-------+---------------+---------+---------+------+------+----------+-----------------+
+| id | select_type  | table      | partitions | type  | possible_keys | key     | key_len | ref  | rows | filtered | Extra           |
++----+--------------+------------+------------+-------+---------------+---------+---------+------+------+----------+-----------------+
+|  1 | PRIMARY      | user_info  | NULL       | range | PRIMARY       | PRIMARY | 8       | NULL |    3 |   100.00 | Using where     |
+|  2 | UNION        | user_info  | NULL       | range | PRIMARY       | PRIMARY | 8       | NULL |    3 |   100.00 | Using where     |
+| NULL | UNION RESULT | <union1,2> | NULL       | ALL   | NULL          | NULL    | NULL    | NULL | NULL |     NULL | Using temporary |
++----+--------------+------------+------------+-------+---------------+---------+---------+------+------+----------+-----------------+
+3 rows in set, 1 warning (0.00 sec)
+```
+
+​	
+
+#### type
+
+​	`type` 字段比较重要, 它提供了判断查询是否高效的重要依据依据. 通过 `type` 字段, 我们判断此次查询是 `全表扫描` 还是 `索引扫描` 等.
+
+​	type 常用的取值有:
+
+- `system`: 表中只有一条数据. 这个类型是特殊的 `const` 类型.
+
+- `const`: 针对主键或唯一索引的等值查询扫描, 最多只返回一行数据. const 查询速度非常快, 因为它仅仅读取一次即可.
+
+- `eq_ref`: 此类型通常出现在多表的 join 查询, 表示对于前表的每一个结果, 都只能匹配到后表的一行结果. 并且查询的比较操作通常是 `=`, 查询效率较高. 例如:
+
+  ```mysql
+   SELECT * FROM user_info, order_info WHERE user_info.id = order_info.user_id
+  ```
+
+- `ref`: 此类型通常出现在多表的 join 查询, 针对于非唯一或非主键索引, 或者是使用了 `最左前缀` 规则索引的查询. 
+  例如下面这个例子中, 就使用到了 `ref` 类型的查询:
+
+  ```mysql
+  EXPLAIN SELECT * FROM user_info, order_info WHERE user_info.id = order_info.user_id AND order_info.user_id = 5
+  ```
+
+- `range`: 表示使用索引范围查询, 通过索引字段范围获取表中部分数据记录. 这个类型通常出现在 =, <>, >, >=, <, <=, IS NULL, <=>, BETWEEN, IN() 操作中.
+  当 `type` 是 `range` 时, 那么 EXPLAIN 输出的 `ref` 字段为 NULL, 并且 `key_len` 字段是此次查询中使用到的索引的最长的那个。
+
+  ```mysql
+  EXPLAIN SELECT * FROM user_info WHERE id BETWEEN 2 AND 8
+  ```
+
+- `index`: 表示全索引扫描(full index scan), 和 ALL 类型类似, 只不过 ALL 类型是全表扫描, 而 index 类型则仅仅扫描所有的索引, 而不扫描数据.
+  `index` 类型通常出现在: 所要查询的数据直接在索引树中就可以获取到, 而不需要扫描数据. 当是这种情况时, Extra 字段 会显示 `Using index`.
+
+  ```mysql
+  EXPLAIN SELECT name FROM  user_info
+  ```
+
+- ALL: 表示全表扫描, 这个类型的查询是性能最差的查询之一. 通常来说, 我们的查询不应该出现 ALL 类型的查询, 因为这样的查询在数据量大的情况下, 对数据库的性能是巨大的灾难. 如一个查询是 ALL 类型查询, 那么一般来说可以对相应的字段添加索引来避免.
+  下面是一个全表扫描的例子, 可以看到, 在全表扫描时, possible_keys 和 key 字段都是 NULL, 表示没有使用到索引, 并且 rows 十分巨大, 因此整个查询效率是十分低下的.
+
+  ```mysql
+  EXPLAIN SELECT age FROM  user_info WHERE age = 20
+  ```
+
+
+
+##### type 类型的性能比较
+
+
+
+通常来说, 不同的 type 类型的性能关系如下:
+`ALL < index < range ~ index_merge < ref < eq_ref < const < system`
+`ALL` 类型因为是全表扫描, 因此在相同的查询条件下, 它是速度最慢的.
+而 `index` 类型的查询虽然不是全表扫描, 但是它扫描了所有的索引, 因此比 ALL 类型的稍快.
+后面的几种类型都是利用了索引来查询数据, 因此可以过滤部分或大部分数据, 因此查询效率就比较高了。
+
+
+
+#### possible_keys
+
+​	`possible_keys` 表示 MySQL 在查询时, 能够使用到的索引. 注意, 即使有些索引在 `possible_keys` 中出现, 但是并不表示此索引会真正地被 MySQL 使用到. MySQL 在查询时具体使用了哪些索引, 由 `key` 字段决定.
+
+
+
+#### key
+
+​	此字段是 MySQL 在当前查询时所真正使用到的索引.
+
+
+
+#### key_len
+
+​	表示查询优化器使用了索引的字节数. 这个字段可以评估组合索引是否完全被使用, 或只有最左部分字段被使用到.
+key_len 的计算规则如下:
+
+- 字符串
+  - char(n): n 字节长度
+  - varchar(n): 如果是 utf8 编码, 则是 3 *n + 2字节; 如果是 utf8mb4 编码, 则是 4* n + 2 字节.
+- 数值类型:
+  - TINYINT: 1字节
+  - SMALLINT: 2字节
+  - MEDIUMINT: 3字节
+  - INT: 4字节
+  - BIGINT: 8字节
+- 时间类型
+  - DATE: 3字节
+  - TIMESTAMP: 4字节
+  - DATETIME: 8字节
+- 字段属性: NULL 属性 占用一个字节. 如果一个字段是 NOT NULL 的, 则没有此属性.
+
+
+
+```mysql
+EXPLAIN SELECT * FROM order_info WHERE user_id < 3 AND product_name = 'p1' AND productor = 'WHH'
+```
+
+​	上面的例子是从表 order_info 中查询指定的内容, 而我们从此表的建表语句中可以知道, 表 `order_info` 有一个联合索引:
+
+```mysql
+KEY `user_product_detail_index` (`user_id`, `product_name`, `productor`)
+```
+
+​	不过此查询语句 `WHERE user_id < 3 AND product_name = 'p1' AND productor = 'WHH'` 中, 因为先进行 user_id 的范围查询, 而根据 `最左前缀匹配` 原则, 当遇到范围查询时, 就停止索引的匹配, 因此实际上我们使用到的索引的字段只有 `user_id`, 因此在 `EXPLAIN` 中, 显示的 key_len 为 9. 因为 user_id 字段是 BIGINT, 占用 8 字节, 而 NULL 属性占用一个字节, 因此总共是 9 个字节. 若我们将user_id 字段改为 `BIGINT(20) NOT NULL DEFAULT '0'`, 则 key_length 应该是8.
+
+​	上面因为 `最左前缀匹配` 原则, 我们的查询仅仅使用到了联合索引的 `user_id` 字段, 因此效率不算高.
+
+```mysql
+EXPLAIN SELECT * FROM order_info WHERE user_id = 1 AND product_name = 'p1'
+```
+
+​	这次的查询中, 我们没有使用到范围查询, key_len 的值为 161. 为什么呢? 因为我们的查询条件 `WHERE user_id = 1 AND product_name = 'p1'` 中, 仅仅使用到了联合索引中的前两个字段, 因此 `keyLen(user_id) + keyLen(product_name) = 9 + 50 * 3 + 2 = 161`
+
+
+
+### rows
+
+​	rows 也是一个重要的字段. MySQL 查询优化器根据统计信息, 估算 SQL 要查找到结果集需要扫描读取的数据行数.
+​	这个值非常直观显示 SQL 的效率好坏, 原则上 rows 越少越好.
+
+
+
+#### Extra
+
+Explain 中的很多额外的信息会在 Extra 字段显示, 常见的有以下几种内容:
+
+- Using filesort
+  当 Extra 中有 `Using filesort` 时, 表示 MySQL 需额外的排序操作, 不能通过索引顺序达到排序效果. 一般有 `Using filesort`, 都建议优化去掉, 因为这样的查询 CPU 资源消耗大.
+
+  ```mysql
+  EXPLAIN SELECT * FROM order_info ORDER BY product_name 
+  ```
+
+  我们的索引是
+
+  ```mysql
+  KEY `user_product_detail_index` (`user_id`, `product_name`, `productor`)
+  ```
+
+  但是上面的查询中根据 `product_name` 来排序, 因此不能使用索引进行优化, 进而会产生 `Using filesort`.
+  如果我们将排序依据改为 `ORDER BY user_id, product_name`, 那么就不会出现 `Using filesort` 了. 例如:
+
+  ```mysql
+  EXPLAIN SELECT * FROM order_info ORDER BY user_id, product_name
+  ```
+
+- Using index
+  "覆盖索引扫描", 表示查询在索引树中就可查找所需数据, 不用扫描表数据文件, 往往说明性能不错
+
+- Using temporary
+  查询有使用临时表, 一般出现于排序, 分组和多表 join 的情况, 查询效率不高, 建议优化.
+
+
+
+[MySQL 性能优化神器 Explain 使用分析](https://segmentfault.com/a/1190000008131735)
 
 
 
@@ -1406,3 +1930,11 @@ WriteType参数设置：
 ###InnoDB为什么推荐使用自增ID作为主键？
 
 ​    答：自增ID可以保证每次插入时B+索引是从右边扩展的，可以避免B+树和频繁合并和分裂（对比使用UUID）。如果使用字符串主键和随机主键，会使得数据随机插入，效率比较差。
+
+
+
+### MYSQL分页limit速度太慢优化方法
+
+- 原则上就是缩小扫描范围。
+
+[MYSQL分页limit速度太慢优化方法](https://www.jianshu.com/p/0a7e3055a01f)
