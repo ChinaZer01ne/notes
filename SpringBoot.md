@@ -186,3 +186,10 @@ environment.getProperty("uri")
 
 
 
+## 问题
+
+
+
+### 不同模块之间依赖，bean扫描不到的问题
+
+https://blog.csdn.net/ignorewho/article/details/84978800
