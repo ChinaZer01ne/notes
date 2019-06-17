@@ -589,9 +589,79 @@ mysql> show variables like 'innodb_adaptive_hash_index';
 
 
 
+### 索引的一些常见问题
 
 
-## MyISAM与InnoDB区别
+
+#### 为什么要使用索引
+
+因为索引会让我们避免全表扫描，提高查询效率，当然在数据量小的情况下不建议建立索引，应为可能还没有全表扫描快。
+
+
+
+#### 什么样的信息能成为索引？
+
+具备一定区分性的字段都可以成为索引
+
+
+
+#### 索引的数据结构
+
+主流是B+树，还有hash结构，bitmap等，mysql不支持bitmap
+
+
+
+#### 密集索引和稀疏索引的区别
+
+参见索引篇
+
+
+
+#### 如何定位并优化慢查询sql
+
+- 根据慢日志定位慢查询sql
+  - 通过`show VARIABLES like '%quer%'`查询配置信息
+    - long_query_time	10.000000：慢查询时间，一般1s
+      - `set global long_query_time = 1;`//临时设置
+      - 修改`my.ini`，永久有效
+    - slow_query_log    ON： 慢查询记录开关
+      - `set global slow_query_log = on;`//临时设置
+      - 修改`my.ini`，永久有效
+    - slow_query_log_file    xxx.log：慢查询日志
+  - 通过`show status like '%slow_queries%'`查询慢查询sql的数量
+
+- 使用explain等工具分析sql
+  - 参见优化篇
+
+- 修改sql或者尽量让sql走索引
+
+> 对于count查询，mysql优先使用自己创建的索引，而不是主键索引，如果想强制使用主键索引，可以通过`SELECT count(id) from table force index(PRIMARY)`来实现，当然这也不一定更快，需要根据实际情况比较速度，进行使用。
+
+#### 联合索引的最左匹配原则的成因
+
+1、最左前缀匹配原则，非常重要的原则，mysql会一直向右匹配知道遇到范围查询（>、<、between、like）就停止匹配，比如`a = 3 and b = 4 and c > 5 and d = 6 `，如果建立（a,b,c,d）顺序的索引，d是用不到索引的，如果建立（a,b,d,c）的索引则都可以用到，a，b，d的顺序可以任意调整。
+
+2、`=`和`in`可以乱序，比如`a = 1 and b = 2 and c = 3`建立（a,b,c）索引可以任意顺序，mysql的查询优化器会帮你优化成索引可以识别的形式。
+
+
+
+**成因：**
+
+mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引，会先对a字段进行排序，然后对b字段进行排序，然后c字段排序，a字段是绝对有序的，通过a字段生成B+树索引可以查到b和c，但是如果根据b和c，是无序的，没法走索引了。
+
+
+
+#### 索引是建立的越多越好吗
+
+- 数据量小的表不需要建立索引，建立会增加额外的索引开销
+- 数据变更需要维护索引，因此更多的索引意味着更多的维护成本
+- 更多的索引意味着也需要更多的空间
+
+
+
+##数据库引擎
+
+### MyISAM与InnoDB区别
 
 1. **InnoDB支持事务，MyISAM不支持事务。**对于InnoDB每一条SQL语句都默认封装成事务，自动提交，这样会影响速度，所以最好把多条SQL语句放在begin和commit之间，组成一个事务。
 
@@ -640,7 +710,7 @@ mysql> show variables like 'innodb_adaptive_hash_index';
 
 
 
-## 数据库引擎的选择
+### 数据库引擎的选择
 
 
 
@@ -702,6 +772,8 @@ mysql> show variables like 'innodb_adaptive_hash_index';
 与上一节中提到的两种锁的种类相似的是，意向锁也分为两种：
 
 - **意向共享锁**：事务想要在获得表中某些记录的共享锁，需要在表上先加意向共享锁；
+  - 显示的给表加读锁，`lock TABLE your_table_name READ`
+  - 给表解锁，`unlock tables`
 - **意向互斥锁**：事务想要在获得表中某些记录的互斥锁，需要在表上先加意向互斥锁；
 
 随着意向锁的加入，锁类型之间的兼容矩阵也变得愈加复杂：
@@ -1938,3 +2010,55 @@ WriteType参数设置：
 - 原则上就是缩小扫描范围。
 
 [MYSQL分页limit速度太慢优化方法](https://www.jianshu.com/p/0a7e3055a01f)
+
+
+
+### 锁的阻塞
+
+#### MyISAM表锁
+
+先上读锁，再上写锁，会阻塞；
+
+`session1:select	session2:update		block`
+
+先上读锁(非select ... for update排它锁情况)，再上读锁，不会阻塞；
+
+`session1:select	session2:select		not block`
+
+先上写锁，再上写锁，会阻塞；
+
+`session1:update	session2:update		block`
+
+先上写锁，再上读锁，会阻塞；
+
+`session1:update	session2:select		block`
+
+
+
+#### Innodb行锁
+
+
+
+先上读锁，再上写锁，不会阻塞；
+
+`session1:select	session2:update		not block`
+
+如果读锁是`lock in share mode共享锁`或者是`select ... for update排它锁`，如果**操作同一行数据会阻塞，否则不会阻塞**。
+
+
+
+A表加了`lock in share mode共享锁`，B表不能在同一条记录上加`select ... for update排它锁`
+
+A表加了`select ... for update排它锁`，B表不能在同一条记录上加`lock in share mode共享锁`和`select ... for update排它锁`
+
+
+
+`select`和 `select lock in share mode`的区别：
+
+`select * from table where id = ?;`
+
+**执行的是快照读，读的是数据库记录的快照版本，是不加锁的。（这种说法在隔离级别为`Serializable`中不成立）**
+
+
+
+[参照这篇文章](https://www.cnblogs.com/rjzheng/p/9950951.html)
