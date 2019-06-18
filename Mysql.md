@@ -717,7 +717,8 @@ mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引�
 1. 是否要支持事务，如果要请选择innodb，如果不需要可以考虑MyISAM；
 2. 如果表中绝大多数都只是读查询，可以考虑MyISAM，如果既有读也有写，请使用InnoDB。
 3. 系统奔溃后，MyISAM恢复起来更困难，能否接受；
-4. MySQL5.5版本开始Innodb已经成为Mysql的默认引擎(之前是MyISAM)，说明其优势是有目共睹的，如果你不知道用什么，那就用InnoDB，至少不会差。
+4. 频繁进行全表count，适合MyISAM
+5. MySQL5.5版本开始Innodb已经成为Mysql的默认引擎(之前是MyISAM)，说明其优势是有目共睹的，如果你不知道用什么，那就用InnoDB，至少不会差。
 
 
 **innodb引擎的4大特性**
@@ -746,6 +747,18 @@ mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引�
 
 ​	乐观锁不会存在死锁的问题，但是由于更新后验证，所以当**冲突频率**和**重试成本**较高时更推荐使用悲观锁，而需要非常高的**响应速度**并且**并发量**非常大的时候使用乐观锁就能较好的解决问题（比较CAS来学习），在这时使用悲观锁就可能出现严重的性能问题；在选择并发控制机制时，需要综合考虑上面的四个方面（冲突频率、重试成本、响应速度和并发量）进行选择。
 
+例如：
+
+```sql
+session1:
+update test_innodb set money = 123 , version = version + 1  where version = 0 and id = 1
+
+session2:
+update test_innodb set money = 123 , version = version + 1  where version = 0 and id = 1
+
+# 只有一条能执行成功，另一条影响行数为0，可以进行业务判断，执行操作，这就是乐观锁，类似CAS的
+```
+
 
 
 ### 读锁与写锁（共享锁与互斥锁）
@@ -753,7 +766,7 @@ mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引�
 ​	对数据的操作其实只有两种，也就是读和写，而数据库在实现锁时，也会对这两种操作使用不同的锁；InnoDB 实现了标准的行级锁，也就是共享锁（Shared Lock）和互斥锁（Exclusive Lock）；共享锁和互斥锁的作用其实非常好理解：
 
 - **共享锁（读锁）**：允许事务对一条行数据进行读取；**select …… lock in share mode;** 
-- **互斥锁（写锁）**：允许事务对一条行数据进行删除或更新；**select …… for update;**
+- **互斥锁（写锁、排它锁）**：允许事务对一条行数据进行删除或更新；**select …… for update;**
 
 
 
@@ -767,7 +780,7 @@ mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引�
 
 ### 锁的粒度
 
-​	无论是共享锁还是互斥锁其实都只是对某一个数据行进行加锁，InnoDB 支持多种粒度的锁，也就是行锁和表锁；为了支持多粒度锁定，InnoDB 存储引擎引入了意向锁（Intention Lock），意向锁就是一种表级锁。
+​	无论是共享锁还是互斥锁其实都只是对某一个数据行进行加锁，InnoDB 支持多种粒度的锁，也就是**行锁，表锁和页级锁**（介于前两者之间，范围数据锁定）；为了支持多粒度锁定，InnoDB 存储引擎引入了意向锁（Intention Lock），意向锁就是一种表级锁。
 
 与上一节中提到的两种锁的种类相似的是，意向锁也分为两种：
 
@@ -783,6 +796,121 @@ mysql会按照联合索引的顺序进行排序，比如建立（a,b,c）索引�
 ​	意向锁其实不会阻塞全表扫描之外的任何请求，它们的主要目的是为了表示**是否有人请求锁定表中的某一行数据**。
 
 > 有的人可能会对意向锁的目的并不是完全的理解，我们在这里可以举一个例子：如果没有意向锁，当已经有人使用行锁对表中的某一行进行修改时，如果另外一个请求要对全表进行修改，那么就需要对所有的行是否被锁定进行扫描，在这种情况下，效率是非常低的；不过，在引入意向锁之后，当有人使用行锁对表中的某一行进行修改之前，会先为表添加意向互斥锁（IX），再为行记录添加互斥锁（X），在这时如果有人尝试对全表进行修改就不需要判断表中的每一行数据是否被加锁了，只需要通过等待意向互斥锁被释放就可以了。
+
+
+
+
+
+### 锁的阻塞
+
+#### MyISAM表锁
+
+先上读锁，再上写锁，会阻塞；
+
+`session1:select	session2:update		block`
+
+先上读锁(非select ... for update排它锁情况)，再上读锁，不会阻塞；
+
+`session1:select	session2:select		not block`
+
+先上写锁，再上写锁，会阻塞；
+
+`session1:update	session2:update		block`
+
+先上写锁，再上读锁，会阻塞；
+
+`session1:update	session2:select		block`
+
+
+
+#### Innodb行锁
+
+
+
+**条件走了索引的情况：**
+
+
+
+先读，再上写锁，不会阻塞；select默认不加锁，如果想加共享锁，使用`lock in share mode`
+
+`session1:select(快照读)	session2:update		not block`
+
+如果上了`lock in share mode共享锁`或者是`select ... for update排它锁`，如果**操作同一行数据会阻塞，否则不会阻塞**。
+
+
+
+A表加了`lock in share mode共享锁`，B表不能在同一条记录上加`select ... for update排它锁`，但是可以加`lock in share mode共享锁`
+
+A表加了`select ... for update排它锁`，B表不能在同一条记录上加`lock in share mode共享锁`和`select ... for update排它锁`
+
+
+
+`select`和 `select lock in share mode`的区别：
+
+`select * from table where id = ?;`
+
+**执行的是快照读，读的是数据库记录的快照版本，是不加锁的。（这种说法在隔离级别为`Serializable`中不成立）**
+
+
+
+**条件没走索引的情况：**
+
+
+
+**如果条件没有走索引，那么Innodb的行锁将升级为表锁，与MyISAM表锁一个样**
+
+
+
+[参照这篇文章](https://www.cnblogs.com/rjzheng/p/9950951.html)
+
+
+
+### 快照读和当前读
+
+
+
+#### 当前读
+
+`select ... lock in share mode`
+
+`select ... for update`
+
+`update`
+
+`delete`
+
+`insert`
+
+
+
+​	**这些操作是读取的记录的最新版本，并且保证其他的并发事务不能修改当前记录。**
+
+
+
+#### 快照读
+
+`select`
+
+不加锁的非阻塞读，在事务隔离级别不为Serialiazable的时候成立，因为串行化隔离级别是串行读，所有快照读都退化成了当前读模式。
+
+
+
+#### Innodb如何实现非阻塞读（快照读）？
+
+* 数据行里的DB_TRX_ID、DB_ROLL_PTR、DB_ROW_ID字段
+  * DB_TRX_ID：最近对该记录修改的事务的标识符
+  * DB_ROLL_PTR：回滚指针，连接每次操作的快照记录地址
+  * DB_ROW_ID：自增主键或者innodb自动生成的
+* undo日志
+  * update log：不仅回滚时候需要，快照读也需要
+* read view
+  * 通过事务id的大小，来决定是否读取undo快照
+
+
+
+​	RR级别下，快照读读取到旧版本记录还是新版本数据与，select的时机有关系。
+
+
 
 
 
@@ -814,11 +942,25 @@ CREATE TABLE users(
 
 #### Gap Lock
 
+​	在RR级别以及以上，默认使用Gap锁。
+
 ​	记录锁是在存储引擎中最为常见的锁，除了记录锁之外，InnoDB 中还存在间隙锁（Gap Lock），间隙锁是对索引记录中的一段连续区域的锁；当使用类似 `SELECT * FROM users WHERE id BETWEEN 10 AND 20 FOR UPDATE;` 的 SQL 语句时，就会阻止其他事务向表中插入 `id = 15` 的记录，因为整个范围都被间隙锁锁定了。
 
 > 间隙锁是存储引擎对于性能和并发做出的权衡，并且只用于某些事务隔离级别。
 
 ​	虽然间隙锁中也分为共享锁和互斥锁，不过它们之间并不是互斥的，也就是不同的事务可以同时持有一段相同范围的共享锁和互斥锁，它唯一阻止的就是**其他事务向这个范围中添加新的记录**。
+
+​	**如果where条件全部命中，则不会使用Gap锁，只会加记录锁。**例如`select * from table where id = 1 and id = 3`，当表中存在id为1和3的数据时，就是全部命中。
+
+​	**如果where条件部分命中或全不命中，会加Gap锁。**
+
+
+
+Gap锁防止幻读：
+
+​	**非唯一索引Gap锁：**锁定当前值前后两个区间。例如`delete from table where not_unquie_key = 9`，not_unquie_key 前一个值是6，后一个值是11，那么锁定6-9，9-11。
+
+​	**不走索引Gap锁：**相当于锁表了。
 
 
 
@@ -853,7 +995,7 @@ CREATE TABLE users(
 
 当我们更新一条记录，比如 `SELECT * FROM users WHERE age = 30 FOR UPDATE;`，InnoDB 不仅会在范围 `(21, 30]` 上加 Next-Key 锁，还会在这条记录后面的范围 `(30, 40]` 加间隙锁，所以插入 `(21, 40]` 范围内的记录都会被锁定。
 
-Next-Key 锁的作用其实是为了解决幻读的问题，我们会在下一节谈事务的时候具体介绍。
+**Next-Key 锁的作用其实是为了解决幻读的问题**，我们会在下一节谈事务的时候具体介绍。
 
 
 
@@ -921,7 +1063,7 @@ ISO 和 ANIS SQL 标准制定了四种事务隔离级别，而 InnoDB 遵循了 
 
 - `RAED UNCOMMITED`：使用查询语句不会加锁，可能会读到未提交的行（Dirty Read）；
 - `READ COMMITED`：只对记录加记录锁，而不会在记录之间加间隙锁，所以允许新的记录插入到被锁定记录的附近，所以再多次使用查询语句时，可能得到不同的结果（Non-Repeatable Read）；
-- `REPEATABLE READ`：多次读取同一范围的数据会返回第一次查询的快照，不会返回不同的数据行，但是可能发生幻读（Phantom Read）；
+- `REPEATABLE READ`：多次读取同一范围的数据会返回第一次查询的快照，不会返回不同的数据行，但是可能发生幻读（Phantom Read）；不过MySQL在这个级别解决了幻读情况
 - `SERIALIZABLE`：InnoDB 隐式地将全部的查询语句加上共享锁，解决了幻读的问题；
 
 
@@ -2013,52 +2155,3 @@ WriteType参数设置：
 
 
 
-### 锁的阻塞
-
-#### MyISAM表锁
-
-先上读锁，再上写锁，会阻塞；
-
-`session1:select	session2:update		block`
-
-先上读锁(非select ... for update排它锁情况)，再上读锁，不会阻塞；
-
-`session1:select	session2:select		not block`
-
-先上写锁，再上写锁，会阻塞；
-
-`session1:update	session2:update		block`
-
-先上写锁，再上读锁，会阻塞；
-
-`session1:update	session2:select		block`
-
-
-
-#### Innodb行锁
-
-
-
-先上读锁，再上写锁，不会阻塞；
-
-`session1:select	session2:update		not block`
-
-如果读锁是`lock in share mode共享锁`或者是`select ... for update排它锁`，如果**操作同一行数据会阻塞，否则不会阻塞**。
-
-
-
-A表加了`lock in share mode共享锁`，B表不能在同一条记录上加`select ... for update排它锁`
-
-A表加了`select ... for update排它锁`，B表不能在同一条记录上加`lock in share mode共享锁`和`select ... for update排它锁`
-
-
-
-`select`和 `select lock in share mode`的区别：
-
-`select * from table where id = ?;`
-
-**执行的是快照读，读的是数据库记录的快照版本，是不加锁的。（这种说法在隔离级别为`Serializable`中不成立）**
-
-
-
-[参照这篇文章](https://www.cnblogs.com/rjzheng/p/9950951.html)
