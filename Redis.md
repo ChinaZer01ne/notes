@@ -271,13 +271,109 @@ typedef struct zset {
 
 ## Redis的持久化方式
 
-TODO
+
 
 [Redis持久化方式](http://doc.redisfans.com/topic/persistence.html)
 
-- RDB方式：定期备份快照，常用于灾难恢复。优点：通过fork出的进程进行备份，不影响主进程、RDB 在恢复大数据集时的速度比 AOF 的恢复速度要快。缺点：会丢数据。
-- AOF方式：保存操作日志方式。优点：恢复时数据丢失少，缺点：文件大，回复慢。
+- RDB方式：定期备份快照，常用于灾难恢复。优点：通过fork出的进程进行备份，不影响主进程、RDB 在恢复大数据集时的速度比 AOF 的恢复速度要快，文件也小。缺点：会丢数据，无法保存最近一次快照之后的数据。
+- AOF方式：保存操作日志方式。优点：恢复时数据丢失少，缺点：文件大，恢复慢。
 - 也可以两者结合使用。
+
+
+
+### RDB（快照）持久化
+
+
+
+#### 触发RDB持久化方式
+
+保存某个时间点的全量数据快照
+
+```shell
+# 通过lastsave查询上次快照时间
+127.0.0.1:6379> LASTSAVE
+(integer) 1560912871
+```
+
+可以通过`SAVE`和`BGSAVE`生成RDB快照文件
+
+* SAVE：阻塞Redis的服务器进程，直到RDB文件被创建完毕
+* **BGSAVE：Fork（Copy-on-Write）出一个子进程来创建RDB文件，不阻塞服务器进程**
+
+> Copy-on-Write
+>
+> ​	如果有多个调用者同时要求相同资源（如内存或磁盘上的数据存储），他们会共同获取相同的指针指向相同的资源，知道某个调用者试图修改资源的内容时，系统才会真正复制一份专用副本给该调用者，而其他调用者所见到的最初的资源（之前的快照）扔保持不变
+
+#### 自动化触发RDB持久化方式
+
+* 根据`redis.conf`配置中的`save m n`定时触发（用的是BGSAVE）
+* 主从复制时，主节点自动触发
+* 执行Debug Reload
+* 执行Shutdown且没有开启AOF持久化
+
+
+
+#### RDB缺点
+
+* 内存数据的全量同步，数据量大会由于I/O而严重影响性能
+* 可能会因为Redis挂掉而丢失从当前至最近一次快照期间的数据
+
+
+
+### AOF持久化
+
+AOF（Append-Only-File）持久化：通过保存redis的写状态来持久化数据库的。
+
+* 记录下除了查询以外的所有变更数据库状态的指令
+* 以append的形式追加保存到AOF文件中（增量）
+
+
+
+#### 日志重写解决AOF文件不断增大问题
+
+
+
+比如说：
+
+```shell
+RPUSH list "A" "B"
+RPUSH list "C"
+RPUSH list "D" "E"
+相当于
+RPUSH list "C" "D" "E" "F" "G"
+```
+
+
+
+Redis通过压缩指令来降低AOF文件的大小
+
+
+
+原理：
+
+* 调用fork()，创建一个子线程
+* 子线程把新的AOF写到一个临时文件，不依赖原来的AOF文件
+* 主进程持续将新的变动同时写到内存和原来的AOF中
+* 主进程获取子进程重写AOF的完成信号，往新的AOF同步增量变动
+* 使用新的AOF文件替换掉旧的AOF文件
+
+
+
+### Redis数据恢复
+
+**RDB和AOF文件共存情况下的恢复流程：**
+
+​	由于appendonly.aof文件保存的数据集要比dump.rdb文件保存的数据集更完整，当Redis重启时，会优先载入AOF文件来恢复原始数据。
+
+
+
+**RDB-AOF混合持久化方式：**
+
+* BGSAVE做镜像全量持久化，AOF做增量持久化
+
+
+
+AOF文件前半段是RDB格式的全量数据，后半段是Redis命令格式的增量数据。
 
 
 
@@ -519,6 +615,10 @@ private RedisTemplate redisTemplate;
 
 
 
+## Redis主从复制的原理
+
+ [Redis主从复制原理](https://www.cnblogs.com/hepingqingfeng/p/7263782.html)
+
 
 
 ## 缓存
@@ -629,3 +729,110 @@ public class DistributedLock {
     
 }
 ```
+
+
+
+## 面试问题
+
+
+
+### 1、从海量数据里查询某一固定前缀的key
+
+```shell
+# redis中key的总量
+dbsize
+# 匹配查询key
+keys [pattern]
+# 无阻塞匹配查询key
+scan cursor[MATCH pattern] [COUNT count]
+```
+
+
+
+**`keys [pattern]`：查找所有符合给定模式pattern的key**
+
+例：
+
+```shell
+# 匹配所有user开头的key
+keys user*
+```
+
+* keys指令一次性返回所有匹配的key
+* 键的数量过多会使服务器卡顿
+
+
+
+**`scan cursor[MATCH pattern][COUNT count]`:**
+
+基于游标的迭代器，需要基于上一次的游标延续之前的迭代过程；
+
+以0作为游标开始一次新的迭代，知道命令返回游标0完成一次遍历。 
+
+不保证每次执行都返回某个给定数量的元素，支持模糊查询。
+
+一次返回的数量不可控，只能是大概率符合count参数。
+
+例：
+
+```shell
+# 开始迭代，满足前缀为user的字符串，返回10条
+scan 0 match user* count 10
+```
+
+打印：
+
+```shell
+127.0.0.1:6379> scan 0 match user* count 10
+1) "5"	# 当期游标位置
+2) 1) "user-a"
+   2) "user-b"
+   3) "user-c"
+```
+
+所以下次命令执行应该是：
+
+```shell
+# 5 是上次执行结果打印的游标位置
+scan 5 match user* count 10
+```
+
+
+
+### 2、大量的key同时过期的注意事项
+
+集中过期，由于清除大量的key很好使，会出现短暂的卡顿现象
+
+* 解决方案：在设置key的过期时间的时候，给每个key加上随机值
+
+
+
+### 3、如何使用Redis做异步队列
+
+使用list作为队列，RPUSH生产消息，LPOP消费消息。
+
+* 缺点：没有等待队列里有值就直接消费
+
+* 弥补：
+
+  * 可以通过在应用层引入Sleep机制去调用LPOP重试
+
+  * blpop key [key...] timeout：阻塞直到队列有消息或者超时
+
+    如：`blpop list 30`：超时时间为30秒的pop
+
+    * 缺点：只能一个消费者消费
+
+
+
+**pub/sub：主题订阅者模式**
+
+*  发送者（pub）发送消息，订阅者（sub）接收消息
+* 订阅者可以订阅任意数量的频道
+* 消息的发布是无状态的，无法保证可达
+
+
+
+订阅主题：`subscribe [topicName]`
+
+向主题发送消息：`publish [topicName] [message]`
