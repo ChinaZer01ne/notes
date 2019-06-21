@@ -923,3 +923,24 @@ MetaSpace相比PermGen的优势：
 * 永久代会为GC带来不必要的复杂性
 * 方便HotSpot与其他JVM如Jrockit的集成
 
+6、如何晋升到老年代？
+
+* 经历一定Minor次数依然存活的对象（年龄，默认15）
+* Survivor区中存放不下的对象
+* 新生成的大对象（-XX:PertenuerSizeThreshold）
+
+7、如何触发Full GC？
+
+* 老年代空间不足
+* 永久代空间不足
+* CMS GC时出现promotion fail,concurrent model failure
+* Minor GC晋升到老年代的平均大小大于老年代的剩余空间
+* 调用System.gc()
+* 使用RMI来进行RPC或管理的JDK应用，每小时执行一次Full GC
+
+8、常用的调优参数
+
+* -XX:SurvivorRatio：Eden和Survivor的比值，默认8 ：1
+* -XX:NewRatio：老年代和年轻带内存大小的比例
+*  -XX:MaxTenuringThreshold：对象从年轻代晋升到老年代经过GC次数的最大阈值
+
