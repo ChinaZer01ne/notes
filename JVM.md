@@ -19,6 +19,125 @@ JVM运行时区域包括：程序计数器、虚拟机栈、本地方法栈、�
 
 TODO
 
+
+
+## GC
+
+
+
+### 常见的垃圾收集器
+
+
+
+#### JVM的运行模式
+
+* Server：启动慢，稳定后运行比Client快
+* Client：启动快
+
+
+
+#### 7种垃圾收集器
+
+
+
+![YoungGeneration](images/JVM/YoungGeneration.png)
+
+
+
+#### 年轻代常见的垃圾收集器
+
+
+
+**Serial收集器（-XX:+UseSerialGC，复制算法）**
+
+* 单线程收集，进行垃圾收集时，必须暂停所有工作线程
+* 简单高效，Client模式下默认的年轻代收集器
+
+![　Serial](images/JVM/Serial.png)
+
+
+
+**ParNew收集器（-XX:+UseParNewGC，复制算法）**
+
+* 多线程收集，其余的行为、特点和Serial收集器一样
+* 单核执行效率不如Serial，在多核下执行才有优势，默认线程数和CPU核数相同
+
+
+
+![arNew](images/JVM/ParNew.png)
+
+
+
+**Parallel Scavenge收集器（-XX:+UserParallelGC，复制算法）**
+
+* 吞吐量 = 运行用户代码时间 / （运行用户代码时间 + 垃圾收集时间）
+* 比起关注用户线程停顿时间，更关注系统的吞吐量
+* 在多核下执行才有优势，Server模式下默认的年轻代收集器
+* 在实际中，可以配合（-XX:UserAdaptiveSizePolicy）使用，会把内存管理的调优交给虚拟机完成
+
+
+
+![arallelGC](images/JVM/ParallelGC.png)
+
+
+
+
+
+#### 老年代常见的垃圾收集器
+
+
+
+**Serial Old收集器（-XX:+UseSerialOldGC，标记-整理算法）**
+
+* 单线程收集，进行垃圾收集时，必须暂停
+* 简单高效，Client模式下默认的老年代收集器
+
+![　Serial](images/JVM/Serial.png)
+
+​	
+
+**Parallel Old收集器（-XX: +UseParallelOldGC，标记整理算法）**
+
+* 多线程，吞吐量优先
+
+![ParallelOld](images/JVM/ParallelOld.jpg)
+
+
+
+**CMS收集器（-XX:UseConcMarkSweepGC，标记清除算法）**
+
+* 初始标记：stop-the-world
+* 并发标记：并发追溯标记，程序不会停顿
+* 并发预清理：查找执行并发标记阶段从年轻代晋升到老年代的对象
+* 重新标记：暂停虚拟机，扫描CMS堆中的剩余对象
+* 并发清理：清理垃圾对象，程序不会停顿
+* 并发重置：重置CMS收集器的数据结构
+
+![CMS](images/JVM/CMS.jpg)
+
+
+
+#### G1收集器
+
+既用于年轻代，又用于老年代
+
+**Garbage First收集器的特点：（-XX:+UseG1GC，复制＋标记整理算法）**
+
+* 并行和并发
+* 分代收集
+  * 将整个Java堆内存划分成多个大小相等的Region
+  * 年轻代和老年代不再物理隔离
+* 空间整合
+* 可预测的停顿
+
+
+
+#### 其他研发中的GC
+
+JDK11：Epsilon GC和ZGC
+
+
+
 ## 字节码指令
 
 - **ldc**：表示将int，float或是String类型的常量值从常量池中推送到栈顶。（表示接下来要使用）。相关类`com.sun.org.apache.bcel.internal.generic.LDC`
@@ -903,48 +1022,6 @@ synchronized对字节码的影响：
 * 基于栈的指令集的优势在于他可以在不同平台之间移植。
 * 基于栈的指令集的缺点在于完成相同的操作，指令数量通常比基于寄存器的指令集多。基于栈的指令集是在内存中完成操作的，而基于寄存器的指令集是直接由CPU来执行的，他是在高速缓冲区中执行，速度要快很多。虽然虚拟机可以采用一些优化手段，但总体来说，基于栈的指令集的执行速度要慢一些的。
 
-4、loadClass和forName的区别
-
-* Class.forName得到的class是已经完成初始化的
-* Classloader.loadClass得到的class是还没有链接的
-
-5、**元空间（MetaSpace）与永久代（PermGen）的区别**
-
-​	两者都是方法区的一种实现
-
-* 元空间使用本地内存，而永久代使用JVM的内存
-
-**JDK7之后，字符串常量池已经移出了方法区，放到了堆中**，也就是说，MetaSpace中是没有字符串常量池的
-
-MetaSpace相比PermGen的优势：
-
-* 字符串常量池存在永久代中，容易出现性能问题和内存溢出
-* 类和方法的信息太小难以确定，给永久代的大小指定带来困难
-* 永久代会为GC带来不必要的复杂性
-* 方便HotSpot与其他JVM如Jrockit的集成
-
-<<<<<<< HEAD
-6、如何晋升到老年代？
-
-* 经历一定Minor次数依然存活的对象（年龄，默认15）
-* Survivor区中存放不下的对象
-* 新生成的大对象（-XX:PertenuerSizeThreshold）
-
-7、如何触发Full GC？
-
-* 老年代空间不足
-* 永久代空间不足
-* CMS GC时出现promotion fail,concurrent model failure
-* Minor GC晋升到老年代的平均大小大于老年代的剩余空间
-* 调用System.gc()
-* 使用RMI来进行RPC或管理的JDK应用，每小时执行一次Full GC
-
-8、常用的调优参数
-
-* -XX:SurvivorRatio：Eden和Survivor的比值，默认8 ：1
-* -XX:NewRatio：老年代和年轻带内存大小的比例
-*  -XX:MaxTenuringThreshold：对象从年轻代晋升到老年代经过GC次数的最大阈值
-
 
 
 
@@ -986,8 +1063,112 @@ MetaSpace相比PermGen的优势：
 
 
 
-元空间、堆、线程独占部分间的联系——内存角度
+3、元空间、堆、线程独占部分间的联系——内存角度
 
 * 元空间：方法区的字节码对象
 * 堆：程序创建的对象
 * 线程独占部分：程序计数器，虚拟机栈，本地方法栈
+
+
+
+4、loadClass和forName的区别
+
+- Class.forName得到的class是已经完成初始化的
+- Classloader.loadClass得到的class是还没有链接的
+
+
+
+5、**元空间（MetaSpace）与永久代（PermGen）的区别**
+
+​	两者都是方法区的一种实现
+
+- 元空间使用本地内存，而永久代使用JVM的内存
+
+**JDK7之后，字符串常量池已经移出了方法区，放到了堆中**，也就是说，MetaSpace中是没有字符串常量池的
+
+MetaSpace相比PermGen的优势：
+
+- 字符串常量池存在永久代中，容易出现性能问题和内存溢出
+- 类和方法的信息太小难以确定，给永久代的大小指定带来困难
+- 永久代会为GC带来不必要的复杂性
+- 方便HotSpot与其他JVM如Jrockit的集成
+
+6、如何晋升到老年代？
+
+- 经历一定Minor次数依然存活的对象（年龄，默认15）
+- Survivor区中存放不下的对象
+- 新生成的大对象（-XX:PertenuerSizeThreshold）
+
+7、如何触发Full GC？
+
+- 老年代空间不足
+- 永久代空间不足
+- CMS GC时出现promotion fail,concurrent model failure
+- Minor GC晋升到老年代的平均大小大于老年代的剩余空间
+- 调用System.gc()
+- 使用RMI来进行RPC或管理的JDK应用，每小时执行一次Full GC
+
+8、常用的调优参数
+
+- -XX:SurvivorRatio：Eden和Survivor的比值，默认8 ：1
+- -XX:NewRatio：老年代和年轻带内存大小的比例
+- -XX:MaxTenuringThreshold：对象从年轻代晋升到老年代经过GC次数的最大阈值
+
+
+
+9、Java中的强引用，软引用，弱引用，虚引用有什么用？
+
+**强引用（Strong Reference）**
+
+* 最普遍的引用：`Object onj = new Object();`
+* 抛出OOM终止程序也不会回收具有强引用的对象
+* 通过将对象设置为null来弱化引用，使其被回收
+
+**软引用（Soft Reference）**
+
+* 对象处在有用但非必须的状态
+* 只有当内存空间不足时，GC会回收该引用的对象的内存
+* 可以用来实现高速缓存
+* 也可以配合ReferenceQueue使用
+
+```java
+Stirng str = new String("abc");
+SoftReference queue = new SoftReference(str);
+```
+
+
+
+**弱引用（Weak Reference）**
+
+* 非必须的对象，比软引用更弱些
+* GC时会被回收
+* 被回收的概率也不大，因为GC线程优先级比较低
+* 适用于引用偶尔被使用且不影响垃圾收集的对象
+* 也可以配合ReferenceQueue使用
+
+```java
+Stirng str = new String("abc");
+WeakReference queue = new WeakReference(str);
+```
+
+
+
+**虚引用（Phantom Reference）**
+
+* 不会决定对象的生命周期
+* 任何时候都可能被垃圾收集器回收
+* 主要用来跟踪对象被垃圾收集器回收的活动，起哨兵作用
+* 必须和引用队列ReferenceQueue联合使用
+
+```java
+Stirng str = new String("abc");
+ReferenceQueue queue = new ReferenceQueue();
+PhantomReference ref = new PhantomReference(str, queue);
+```
+
+
+
+>  引用队列（Reference Queue）
+>
+> * 无实际存储结构，存储逻辑依赖于内部节点之间的关系来表达
+> * 存储关联的且被GC的软引用，弱引用以及虚引用
