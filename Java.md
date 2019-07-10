@@ -162,6 +162,10 @@ class UnCheckedException extends RuntimeException{
 
 **HashMap**
 
+在HashMap中，**哈希桶数组table的长度length大小必须为2的n次方**(一定是合数)，这是一种非常规的设计，常规的设计是把桶的大小设计为素数。相对来说素数导致冲突的概率要小于合数[2].
 
+HashMap采用这种非常规设计，主要是**为了在取模和扩容时做优化**，同时为了减少冲突，HashMap定位哈希桶索引位置时，也加入了高位参与运算的过程。
+
+只有传入的元素是可比较的，才会转红黑树，因为红黑树需要元素是比较的，这也是对存入元素必须重写equal，hashcode的原因吧。
 
 **ConcurrentHashMap**
