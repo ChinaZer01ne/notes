@@ -417,7 +417,7 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
     }
 
     /**
-     * Initializes or doubles table size.  If null, allocates in
+     * 初始化或者扩容成两倍大小.If null, allocates in
      * accord with initial capacity target held in field threshold.
      * Otherwise, because we are using power-of-two expansion, the
      * elements from each bin must either stay at same index, or move
@@ -430,7 +430,7 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
-        if (oldCap > 0) {       //扩容操作，桶数量变为两倍,threshold变为两倍
+        if (oldCap > 0) {       //说明需要扩容操作，桶数量变为两倍,threshold变为两倍
             if (oldCap >= MAXIMUM_CAPACITY) {
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
@@ -439,9 +439,9 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
                 newThr = oldThr << 1; // double threshold
         }
-        else if (oldThr > 0) // initial capacity was placed in threshold
+        else if (oldThr > 0) // initial capacity was placed in threshold 初始容量设置为阈值
             newCap = oldThr;
-        else {               // zero initial threshold signifies using defaults //oldCap如果等于0，初始化操作
+        else {               // zero initial threshold signifies using defaults //初始threshold为零表示使用默认值
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
@@ -454,14 +454,14 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
-        if (oldTab != null) {
-            for (int j = 0; j < oldCap; ++j) {
+        if (oldTab != null) {	//rehash
+            for (int j = 0; j < oldCap; ++j) {	//遍历每个bucket中的元素
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
-                    oldTab[j] = null;
-                    if (e.next == null)
+                    oldTab[j] = null;	//把当前bucket置为null，之后可以操作e
+                    if (e.next == null)	//如果只有一个元素的情况，直接放到新的hash表中
                         newTab[e.hash & (newCap - 1)] = e;
-                    else if (e instanceof TreeNode)
+                    else if (e instanceof TreeNode)	// 多个元素，e是否是红黑树节点？//TODO 拆分红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
                         Node<K,V> loHead = null, loTail = null;
@@ -469,7 +469,29 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
                         Node<K,V> next;
                         do {
                             next = e.next;
-                            if ((e.hash & oldCap) == 0) {
+							/** 
+							 * 这个地方乍一看可能一头雾水，我们来分析下：
+							 * 首先HashMap初始化的时候会把容量调整成2的幂大小，可以参见tableSizeFor方法首先HashMap初始化的时候会把容量调整成2的幂大小，可以参见tableSizeFor方法
+							 * 比如说 16 ，对应了二进制10000，32对应了100000.
+							 * 
+							 *	(e.hash & oldCap) == 0
+							 * 假设某hash值为110001001，
+							 * 假设我们是16扩容到32
+							 * 110001001 & 10000 == 0
+							 * 只要我们的capacity最高位对应在hashcode中的位是0，那么求&就是等于0的
+							 * 扩容后
+							 * 110001001 & 10000 == 0
+							 * 也就是说，只要我们的capacity扩容前和扩容后最高位对应在hashcode中的位是0，那么求&就是等于0的，就满足这个条件
+							 * 当(e.hash & oldCap) == 0的时候，在扩容的时候，rehash是不影响位置的
+							 * 那么为什么说，这种情况是说明rehash后，bucket的位置没有变化呢？
+							 * 假设hash值为11111，11111&10000!=0
+							 * 那么这个值在扩容后应该是在新表中16号桶中
+							 * 
+							 * 大于新表容量的高位，我们不用管，因为都是倍数关系，不影响映射后的结果
+							 * 小于旧表容量的低位，我们也不用管，因为小于旧表容量，不影响映射后的结果
+							 * 我们只需要关心，旧表的最高位，因为扩容后会映射到中间位置
+							 */
+                            if ((e.hash & oldCap) == 0) {	// 判断节点在resize之后是否需要改变在bucket的位置
                                 if (loTail == null)
                                     loHead = e;
                                 else
@@ -484,6 +506,7 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
+						// 将某节点中的链表分割重组为两个链表：一个需要改变位置，另一个不需要改变位置
                         if (loTail != null) {
                             loTail.next = null;
                             newTab[j] = loHead;
