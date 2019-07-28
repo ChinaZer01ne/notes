@@ -1069,7 +1069,7 @@ registerBeanPostProcessors(beanFactory);
 
 ```java
 /**
- * 按顺序（如果给定了）实例化并调用所有已注册的BeanPostProcessors，必须在单例实例化之前调用。
+ * 注册BeanPostProcessor（通过实现BeanPostProcessor）。
  */
 protected void registerBeanPostProcessors(ConfigurableListableBeanFactory beanFactory) {
    PostProcessorRegistrationDelegate.registerBeanPostProcessors(beanFactory, this);
@@ -2482,3 +2482,4 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
 }
 ```
+
