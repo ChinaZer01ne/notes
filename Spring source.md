@@ -1029,7 +1029,7 @@ postProcessBeanFactory(beanFactory);
 
 ```java
 	/*
-    可以在bean factory 实例化完毕之后，来执行一些操作，这时候所有的 bean definitions已经倍加在，但是没有bean 被实例化，这里允许注册一些特殊的 BeanPostProcessors 在 ApplicationContext实现类中
+    可以在bean factory 实例化完毕之后，来执行一些操作，这时候所有的 bean definitions已经被加载，但是没有bean 被实例化，这里允许注册一些特殊的 BeanPostProcessors 在 ApplicationContext实现类中
 	 */
 	protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 	}
