@@ -109,3 +109,11 @@ dubbo:
 #    port: 20880 # 默认不配就是20880，是dubbo服务的端口
 ```
 
+
+
+## 资料
+
+[官方](http://dubbo.apache.org/en-us/docs/user/demos/concurrency-control.html)
+
+[中文](https://dubbo.gitbooks.io/dubbo-user-book/content/preface/background.html)
+
