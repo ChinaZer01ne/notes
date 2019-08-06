@@ -111,6 +111,14 @@ dubbo:
 
 
 
+## 异步支持
+
+```java
+@EnableAsync
+```
+
+
+
 ## 资料
 
 [官方](http://dubbo.apache.org/en-us/docs/user/demos/concurrency-control.html)
