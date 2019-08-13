@@ -25,3 +25,5 @@
 13、Mybatis返回受影响行数还是匹配行数
 
 https://blog.csdn.net/WJ_toy/article/details/84678914
+
+14、Vue axios 对象传输

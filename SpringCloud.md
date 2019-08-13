@@ -210,9 +210,88 @@ public class FutureDemo {
 
 
 
+
+
+### Hystrix DashBoard
+
+```java
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix-dashboard</artifactId>
+</dependency>
+```
+
+被监控方：
+
+```java
+# 解决 hystrix监控 404 问题
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+```
+
+访问：
+
+http://localhost:8761/hystrix
+
+监控指定服务：
+
+Hystrix Stream: http://ip:port/actuator/hystrix.stream
+
+
+
 ## Feign
 
-1、在启动类下添加`@EnableFeignClients`注解，开启
+
+
+```java
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+
+
+1、在需要使用feign的项目启动类下添加`@EnableFeignClients`注解，开启
+
+```java
+@EnableFeignClients
+public class SpringCloudUserServiceApplication {
+```
+
+2、创建feign调用接口
+
+```java
+//value：调用的服务名，path：服务地址，类似RequestMapping
+@FeignClient(value = "order-service",path = "/api/order")
+public interface OrderClient {
+
+    @GetMapping("/{id}")
+    String getOrder(@PathVariable(name = "id") Long id);
+}
+```
+
+
+
+3、注入调用
+
+```java
+@Autowired
+private OrderClient orderClient;
+
+。。。
+@GetMapping("/getOrder")
+@HystrixCommand(fallbackMethod = "getOrderError")
+public Map<String,String> getOrder(){
+    String order = orderClient.getOrder(1L);
+    。。。
+}
+```
+
+
 
 
 
