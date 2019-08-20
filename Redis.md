@@ -795,6 +795,12 @@ public class DistributedLock {
 ```
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 
 ## 面试问题
@@ -903,13 +909,3 @@ scan 5 match user* count 10
 向主题发送消息：`publish [topicName] [message]`
 
 
-
-
-
-### Redis和memcache的区别
-
-1、Redis支持更多的数据类型，适应更多的复杂场景
-
-2、Redis是单线程，memchcahe是多线程，存储大数据memcache的性能更好点
-
-3、memcached没有原生的集群模式，需要依靠客户端实现往集群中分片写入数据，但是redis目前是原生支持cluster模式的
