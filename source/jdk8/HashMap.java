@@ -460,7 +460,7 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
                 if ((e = oldTab[j]) != null) {
                     oldTab[j] = null;	//把当前bucket置为null，之后可以操作e
                     if (e.next == null)	//如果只有一个元素的情况，直接放到新的hash表中
-                        newTab[e.hash & (newCap - 1)] = e;
+                        newTab[e.hash & (newCap - 1)] = e; //取余
                     else if (e instanceof TreeNode)	// 多个元素，e是否是红黑树节点？//TODO 拆分红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
@@ -484,9 +484,17 @@ public class HashMap2<K,V> extends AbstractMap<K,V>
 							 * 也就是说，只要我们的capacity扩容前和扩容后最高位对应在hashcode中的位是0，那么求&就是等于0的，就满足这个条件
 							 * 当(e.hash & oldCap) == 0的时候，在扩容的时候，rehash是不影响位置的
 							 * 那么为什么说，这种情况是说明rehash后，bucket的位置没有变化呢？
-							 * 假设hash值为11111，11111&10000!=0
-							 * 那么这个值在扩容后应该是在新表中16号桶中
 							 * 
+							 * 假设hash值为11111，11111&10000!=0
+							 * 那么这个值在扩容前（11111 & 01111）应该是在旧表中16号桶（下标15）中
+							 * 那么这个值在扩容后（11111 & 011111）应该是在新表中32号桶（下标31）中
+							 * bucket的位置发生变化
+							 *
+							 * 假设hash值为01111，01111&10000=0
+							 * 那么这个值在扩容前（01111 & 01111）应该是在旧表中16号桶（下标15）中
+							 * 那么这个值在扩容后（01111 & 011111）应该是在新表中也是16号桶（下标15）中
+							 * bucket的位置不变
+							 *
 							 * 大于新表容量的高位，我们不用管，因为都是倍数关系，不影响映射后的结果
 							 * 小于旧表容量的低位，我们也不用管，因为小于旧表容量，不影响映射后的结果
 							 * 我们只需要关心，旧表的最高位，因为扩容后会映射到中间位置
