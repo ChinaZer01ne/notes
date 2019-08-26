@@ -2076,3 +2076,6 @@ public abstract class AbstractQueuedSynchronizer
 }
 ```
 
+
+
+https://www.jianshu.com/p/71449a7d01af
