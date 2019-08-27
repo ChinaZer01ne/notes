@@ -1119,10 +1119,12 @@ public abstract class AbstractQueuedSynchronizer
     // Main exported methods
 
     /**
+	 * 尝试获取一个独占锁
      * Attempts to acquire in exclusive mode. This method should query
      * if the state of the object permits it to be acquired in the
      * exclusive mode, and if so to acquire it.
      *
+	 * 这个方法总是被想要获取锁的线程调用。如果方法返回false，那么就把线程放入等待队列中，直到其他线程释放信号为止
      * <p>This method is always invoked by the thread performing
      * acquire.  If this method reports failure, the acquire method
      * may queue the thread, if it is not already queued, until it is
@@ -1137,7 +1139,7 @@ public abstract class AbstractQueuedSynchronizer
      *        to a condition wait.  The value is otherwise uninterpreted
      *        and can represent anything you like.
      * @return {@code true} if successful. Upon success, this object has
-     *         been acquired.
+     *         been acquired.  返回true，说明获取锁成功
      * @throws IllegalMonitorStateException if acquiring would place this
      *         synchronizer in an illegal state. This exception must be
      *         thrown in a consistent fashion for synchronization to work
@@ -1149,9 +1151,10 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 尝试设置state来反映在独占模式下的释放操作
      * Attempts to set the state to reflect a release in exclusive
      * mode.
-     *
+     * 这个方法总是被想要释放锁的线程调用。
      * <p>This method is always invoked by the thread performing release.
      *
      * <p>The default implementation throws
@@ -1163,7 +1166,7 @@ public abstract class AbstractQueuedSynchronizer
      *        uninterpreted and can represent anything you like.
      * @return {@code true} if this object is now in a fully released
      *         state, so that any waiting threads may attempt to acquire;
-     *         and {@code false} otherwise.
+     *         and {@code false} otherwise.		返回true说明释放成功
      * @throws IllegalMonitorStateException if releasing would place this
      *         synchronizer in an illegal state. This exception must be
      *         thrown in a consistent fashion for synchronization to work
@@ -1175,10 +1178,12 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 尝试获取一个共享锁
      * Attempts to acquire in shared mode. This method should query if
      * the state of the object permits it to be acquired in the shared
      * mode, and if so to acquire it.
      *
+	 * 这个方法总是被想要获取锁的线程调用。如果方法返回false，那么就把线程放入等待队列中，直到其他线程释放信号为止
      * <p>This method is always invoked by the thread performing
      * acquire.  If this method reports failure, the acquire method
      * may queue the thread, if it is not already queued, until it is
@@ -1211,6 +1216,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 尝试设置state来反映在共享模式下的释放操作
      * Attempts to set the state to reflect a release in shared mode.
      *
      * <p>This method is always invoked by the thread performing release.
@@ -1236,6 +1242,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 如果当前（调用）线程独占持有了锁，返回true
      * Returns {@code true} if synchronization is held exclusively with
      * respect to the current (calling) thread.  This method is invoked
      * upon each call to a non-waiting {@link ConditionObject} method.
@@ -1255,6 +1262,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 
      * Acquires in exclusive mode, ignoring interrupts.  Implemented
      * by invoking at least once {@link #tryAcquire},
      * returning on success.  Otherwise the thread is queued, possibly
@@ -1267,6 +1275,7 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
+		// 如果获取锁失败（前面有其他资源等待线程），就入队（公平锁）
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
@@ -1539,6 +1548,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+	 * 查询是否有任何线程等待获取的时间超过当前线程。
      * Queries whether any threads have been waiting to acquire longer
      * than the current thread.
      *
@@ -1588,6 +1598,7 @@ public abstract class AbstractQueuedSynchronizer
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+		// 等待队列不为空 &&  下一个节点等于null 或者 下一个节点绑定的线程不是当前线程
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
     }
