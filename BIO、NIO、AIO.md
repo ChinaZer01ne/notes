@@ -249,7 +249,7 @@ int num = channel.read(buf);
 
 前面介绍了写操作，每写入一个值，position 的值都需要加 1，所以 position 最后会指向最后一次写入的位置的后面一个，如果 Buffer 写满了，那么 position 等于 capacity（position 从 0 开始）。
 
-**如果要读 Buffer 中的值，需要切换模式，从写入模式切换到读出模式。注意，通常在说 NIO的读操作的时候（`channel.read(buffer)`），我们说的是从 Channel 中读数据到 Buffer 中，对应的是对 Buffer 的写入操作（虽然对于channel是读操作，但是对于buffer来说是写操作），`channel.write(buffer)`对于channel是读操作，但是对于buffer来说是写操作， 初学者需要理清楚这个。**
+**如果要读 Buffer 中的值，需要切换模式，从写入模式切换到读出模式。注意，通常在说 NIO的读操作的时候（`channel.read(buffer)`），我们说的是从 Channel 中读数据到 Buffer 中，对应的是对 Buffer 的写入操作（虽然对于channel是读操作，但是对于buffer来说是写操作），`channel.write(buffer)`对于channel是写操作，但是对于buffer来说是读操作， 初学者需要理清楚这个。**
 
 调用 Buffer 的 **flip()** 方法，可以进行读写模式切换，读转写，写转读，务必调用。其实这个方法也就是设置了一下 position 和 limit 值罢了。
 
