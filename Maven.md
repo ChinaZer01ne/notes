@@ -119,7 +119,7 @@ maven-model-build-${version}.jar/org/apache/maven/model/pom.xml
 
 ​			site-deploy:
 
-![Maven生命周期](C:\Users\Lion\Desktop\资料\images\maven\Maven生命周期.png)
+![Maven生命周期](images\maven\Maven生命周期.png)
 
 ##7.版本管理：
 

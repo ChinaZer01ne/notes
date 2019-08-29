@@ -138,7 +138,7 @@ readerIndex (0) <= writerIndex (decreased)        <=        capacity
 
 
 
-1、Netty的B因特尔Buf采用了读写索引分离的策略（readerIndex与writerIndex）,一个初始化（里面尚未有任何数据）的ByteBuf的readerIndex与writerIndex都为0。
+1、Netty的ByteBuf采用了读写索引分离的策略（readerIndex与writerIndex）,一个初始化（里面尚未有任何数据）的ByteBuf的readerIndex与writerIndex都为0。
 
 2、当读索引与写索引处于同一个位置时，如果我们继续读取，那么会抛出IndexOutOfBoundsException。
 
@@ -150,15 +150,15 @@ readerIndex (0) <= writerIndex (decreased)        <=        capacity
 
 JDK的ByteBuffer的缺点：
 
-1、final byte[] hb；这是JDK的ByteBuffer对象中用于存储数据的对象声明；可以看到，其字节数组是被声明为final的，也就是不可更改，长度是固定的。一旦分配好后不能动态的扩容与收缩；而且当待储存的数据字节很大时就很有可能出现IndexOutOfBoundException。如果要预防这个异常，那就需要在储存之前完全确定好待储存的字节大小。如果ByteBuffer的空间不足，我们只有一种解决方案；创建一个全新的ByteBuffer对象，然后再将之前的ByteBuffer中的数据复制过去，这一切操作都需要开发者自己手动完成。
+1、final byte[] hb；这是JDK的ByteBuffer对象中用于存储数据的对象声明；可以看到，其字节数组是被声明为final的，也就是**不可更改**，长度是固定的。一旦分配好后不能动态的扩容与收缩；而且当待储存的数据字节很大时就很有可能出现IndexOutOfBoundException。如果要预防这个异常，那就需要在储存之前完全确定好待储存的字节大小。如果ByteBuffer的空间不足，我们只有一种解决方案；创建一个全新的ByteBuffer对象，然后再将之前的ByteBuffer中的数据复制过去，这一切操作都需要开发者自己手动完成。
 
-2、ByteBuffer只使用一个position指针来标识位置信息，在进行读写切换时就需要调用filp方法或是rewind方法，使用起来很不方便。
+2、ByteBuffer只使用一个position指针来标识位置信息，在进行读写切换时就需要调用filp方法或是rewind方法，**使用起来很不方便**。
 
 Netty的ByteBuf的优点：
 
-1、存储字节的数组是动态的，其最大值默认是Integer.MAX_VALUE。这里的动态性是体现在write方法中的，write方法在执行时会判断buffer容量，如果不足则自动扩容。
+1、**存储字节的数组是动态的**，其最大值默认是Integer.MAX_VALUE。这里的动态性是体现在write方法中的，write方法在执行时会判断buffer容量，如果不足则自动扩容。
 
-2、ByteBuf的读写索引是完全分开的，使用起来方便。
+2、ByteBuf的读写索引是完全分开的，**使用起来方便**。
 
 
 
