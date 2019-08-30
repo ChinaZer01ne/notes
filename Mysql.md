@@ -369,7 +369,7 @@ init_connect='SET NAMES utf8'
   如果查询条件中含有函数或表达式，则MySQL不会为这列使用索引（虽然某些在数学意义上可以使用）。例如：
 
   ```mysql
-  
+  EXPLAIN SELECT * FROM employees.titles WHERE emp_no='10001' AND left(title, 6)='Senior';
   ```
 
 
@@ -379,7 +379,7 @@ init_connect='SET NAMES utf8'
 
 
   ```mysql
-  
+EXPLAIN SELECT * FROM employees.titles WHERE emp_no - 1='10000';  
   ```
 
 
@@ -408,9 +408,9 @@ init_connect='SET NAMES utf8'
 
 一般两种情况下不建议建索引。
 
-* 表记录比较少，例如一两千条甚至只有几百条记录的表，没必要建索引，让查询做全表扫描就好了。至于多少条记录才算多，这个个人有个人的看法，我个人的经验是以2000作为分界线，记录数不超过 2000可以考虑不建索引，超过2000条可以酌情考虑索引。
+* **表记录比较少**，例如一两千条甚至只有几百条记录的表，没必要建索引，让查询做全表扫描就好了。至于多少条记录才算多，这个个人有个人的看法，我个人的经验是以2000作为分界线，记录数不超过 2000可以考虑不建索引，超过2000条可以酌情考虑索引。
 
-* 索引的选择性较低。所谓索引的选择性（Selectivity），是指不重复的索引值（也叫基数，Cardinality）与表记录数（#T）的比值：
+* **索引的选择性较低。**所谓索引的选择性（Selectivity），是指不重复的索引值（也叫基数，Cardinality）与表记录数（#T）的比值：
 
   `Index Selectivity = Cardinality / #T`
 
@@ -445,6 +445,22 @@ init_connect='SET NAMES utf8'
 
 
 
+#### 什么是覆盖索引
+
+​	即从辅助索引中就可以得到查询的记录，而不需要查询聚集索引中的记录。使用覆盖索引的好吃是辅助索引不饱含整行记录的所有信息，故其大小要远小于聚集索引，因此可以减少大量的IO操作。
+
+​	**SQL只需要通过索引就可以返回查询所需要的数据，而不必通过二级索引查到主键之后再去查询数据。**
+
+​	**如果一个索引包含所有需要查询的字段，就称之为“覆盖索引”。由于在索引的叶子节点中已经包含了要查询的全部数据，所以就可以从索引中直接获取查询结果，而没必要再回表查询。**
+
+#### 为什么不要使用`select *`
+
+
+
+​	我们常常说select的时候最好不要 select * ，而要写成select col1,col2....这种形式，但是**如果在不使用覆盖索引的情况下， select * 和select col1,col2....的区别不大**，select * 只不过多返回了一些字段，增加了一点网络传输上的消耗罢了，其实可以忽略不计。但是如果使用到了覆盖索引，那么他们之间的执行时间差距就大了。select col1 from table; select * from table;如果col1是一个辅助索引，那么Mysql只需要查询这个辅助索引就够了，而select * from table除了要查询辅助索引以外，还要再查一次聚集索引，这就就造成了额外的性能开销。数据量大的情况下，这两种查询的执行时间可能会相差十几倍。
+
+
+
 如：**联合索引<name,age>**
 
 ```mysql
@@ -456,6 +472,14 @@ SELECT * from test_condition where age = 30
 # 或者直接这样，也走覆盖索引
 SELECT name,age from test_condition where age = 30
 ```
+
+
+
+
+
+[sql查询调优之where条件排序字段以及limit使用索引的奥秘](https://www.cnblogs.com/yanduanduan/p/9766160.html)
+
+[MySql索引](https://segmentfault.com/a/1190000010991930#articleHeader4)
 
 
 
