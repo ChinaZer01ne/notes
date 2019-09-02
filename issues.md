@@ -10,6 +10,8 @@
 
 6、进程间内存共享的方法？
 
+https://blog.csdn.net/qingtian211/article/details/81558736
+
 7、支付、订单、购物车、权限
 
 8、J.U.C并发容器源码分析
