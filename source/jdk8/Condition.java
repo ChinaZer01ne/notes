@@ -45,15 +45,18 @@ import java.util.Date;
  * combining them with the use of arbitrary {@link Lock} implementations.
  * Where a {@code Lock} replaces the use of {@code synchronized} methods
  * and statements, 
- * Condition替换Object类中监视器方法的使用({@link Object#wait() wait}, {@link Object#notify notify} and {@link Object#notifyAll notifyAll})
+ * Condition替换了Object类中监视器方法的使用({@link Object#wait() wait}, {@link Object#notify notify} and {@link Object#notifyAll notifyAll})
  * a {@code Condition} replaces the use of the Object
  * monitor methods.
  *
+ * Condition也被叫做条件队列或者条件变量，提供了一种方法：
+ * 一个线程推迟执行，直到其他线程某些状态变成了true的状态
  * <p>Conditions (also known as <em>condition queues</em> or
  * <em>condition variables</em>) provide a means for one thread to
  * suspend execution (to &quot;wait&quot;) until notified by another
  * thread that some state condition may now be true.  Because access
  * to this shared state information occurs in different threads, it
+ * 某种形式的锁与Condition相关联
  * must be protected, so a lock of some form is associated with the
  * condition. The key property that waiting for a condition provides
  * is that it <em>atomically</em> releases the associated lock and

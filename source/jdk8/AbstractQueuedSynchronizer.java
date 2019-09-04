@@ -1935,6 +1935,7 @@ public abstract class AbstractQueuedSynchronizer
                 unlinkCancelledWaiters();
                 t = lastWaiter;
             }
+			//将当前线程包装成Node
             Node node = new Node(Thread.currentThread(), Node.CONDITION);
             if (t == null)
                 firstWaiter = node;
@@ -2099,6 +2100,11 @@ public abstract class AbstractQueuedSynchronizer
                 selfInterrupt();
         }
 
+		/**
+		 * 当当前线程调用condition.await()方法后，会使得当前线程释放lock然后加入到等待队列中，
+		 * 直至被signal/signalAll后会使得当前线程从等待队列中移至到同步队列中去，
+		 * 直到获得了lock后才会从await方法返回，或者在等待时被中断会做中断处理。
+		 */
         /**
          * Implements interruptible condition wait.
          * <ol>
@@ -2115,18 +2121,23 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+			// 将当前线程封装成Node添加到等待队列中，尾插法
             Node node = addConditionWaiter();
+			// 释放持有锁的线程（当前线程）所占用的lock(同步队列中就不存在这个线程绑定的节点了，而是在等待队列中)，在释放的过程中会唤醒同步队列中的下一个节点
             int savedState = fullyRelease(node);
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {
+				// 当前线程进入到等待状态
                 LockSupport.park(this);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
+			// 自旋等待获取到同步状态（即获取到lock）
             if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
                 interruptMode = REINTERRUPT;
             if (node.nextWaiter != null) // clean up if cancelled
                 unlinkCancelledWaiters();
+			// 处理被中断的情况
             if (interruptMode != 0)
                 reportInterruptAfterWait(interruptMode);
         }
