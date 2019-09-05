@@ -6,6 +6,8 @@
 
 4、netty零拷贝？
 
+https://www.jianshu.com/p/497e7640b57c
+
 5、Scalable IO in Java？
 
 6、进程间内存共享的方法？

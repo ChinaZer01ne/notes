@@ -1754,6 +1754,7 @@ public abstract class AbstractQueuedSynchronizer
         /*
          * If cannot change waitStatus, the node has been cancelled.
          */
+		 // 更新状态为0
         if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
             return false;
 
@@ -1763,6 +1764,7 @@ public abstract class AbstractQueuedSynchronizer
          * attempt to set waitStatus fails, wake up to resync (in which
          * case the waitStatus can be transiently and harmlessly wrong).
          */
+		 // 将该节点移入到同步队列中去
         Node p = enq(node);
         int ws = p.waitStatus;
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
@@ -1955,7 +1957,9 @@ public abstract class AbstractQueuedSynchronizer
             do {
                 if ( (firstWaiter = first.nextWaiter) == null)
                     lastWaiter = null;
+				// 将头节点从等待队列中移除
                 first.nextWaiter = null;
+				// while中transferForSignal方法对头结点做真正的处理
             } while (!transferForSignal(first) &&
                      (first = firstWaiter) != null);
         }
@@ -2011,6 +2015,7 @@ public abstract class AbstractQueuedSynchronizer
         // public methods
 
         /**
+		 * 只会将等待队列中的头节点放回到同步队列中
          * Moves the longest-waiting thread, if one exists, from the
          * wait queue for this condition to the wait queue for the
          * owning lock.
@@ -2027,6 +2032,7 @@ public abstract class AbstractQueuedSynchronizer
         }
 
         /**
+		 * 将等待队列中的所有节点放回到同步队列中
          * Moves all threads from the wait queue for this condition to
          * the wait queue for the owning lock.
          *
@@ -2132,7 +2138,7 @@ public abstract class AbstractQueuedSynchronizer
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
-			// 自旋等待获取到同步状态（即获取到lock）
+			// 自旋等待获取到同步状态（即获取到lock），也就是说，当线程被唤醒放入同步队列中，还得需要获取锁才能继续执行
             if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
                 interruptMode = REINTERRUPT;
             if (node.nextWaiter != null) // clean up if cancelled
