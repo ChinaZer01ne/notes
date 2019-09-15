@@ -42,7 +42,7 @@ Reactor负责接收连接，通过dispath分发任务，每个连接分配一个
 
 ## Reactor模式的五大角色
 
-![img](images/Reactor/Reactor原理.png)
+![img](images\Reactor\reactor原理.png)
 
 ### Handle（句柄或描述符）
 

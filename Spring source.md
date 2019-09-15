@@ -8,21 +8,23 @@
 
 工厂配置
 
-**工厂准备阶段  ->  用户扩展工厂后处理器  ->  执行用户扩展的bean factory后处理器**
+**工厂准备阶段  ->  子类扩展工厂后处理器  ->  执行子类扩展的bean factory后处理器**
 
  bean初始化配置
 
-**注册bean创建过程使用的处理器**
+**注册bean创建过程使用的处理器**（比如bean中的注解扫描等，还有shiro，都是在者注册的）
 
 **初始化消息源**
 
 **初始化事件传播**
 
-**onRedresh是一个扩展点**
+**onRefresh是一个子类扩展点**（比如ServletWebServerApplicationContext扩展创建了web容器）
 
 **注册一些监听器**
 
 **实例化所有的单例bean（非懒加载）**
+
+在创建bean（getBean）前后执行了postprocessor，类似静态代理
 
 **初始化完成**
 

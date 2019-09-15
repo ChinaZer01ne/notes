@@ -1,5 +1,145 @@
 # Spring Boot
 
+
+
+## 源码
+
+SpringApplication.run()
+
+```java
+// SpringApplication#295
+/**
+	 * Run the Spring application, creating and refreshing a new
+	 * {@link ApplicationContext}.
+	 * @param args the application arguments (usually passed from a Java main method)
+	 * @return a running {@link ApplicationContext}
+	 */
+	public ConfigurableApplicationContext run(String... args) {
+		StopWatch stopWatch = new StopWatch();
+		stopWatch.start();
+		ConfigurableApplicationContext context = null;
+		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		configureHeadlessProperty();
+		SpringApplicationRunListeners listeners = getRunListeners(args);
+		listeners.starting();
+		try {
+			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
+					args);
+			ConfigurableEnvironment environment = prepareEnvironment(listeners,
+					applicationArguments);
+			configureIgnoreBeanInfo(environment);
+			Banner printedBanner = printBanner(environment);
+            // 创建ApplicationContext
+			context = createApplicationContext();
+			exceptionReporters = getSpringFactoriesInstances(
+					SpringBootExceptionReporter.class,
+					new Class[] { ConfigurableApplicationContext.class }, context);
+			prepareContext(context, environment, listeners, applicationArguments,
+					printedBanner);
+			refreshContext(context);
+			afterRefresh(context, applicationArguments);
+			stopWatch.stop();
+			if (this.logStartupInfo) {
+				new StartupInfoLogger(this.mainApplicationClass)
+						.logStarted(getApplicationLog(), stopWatch);
+			}
+			listeners.started(context);
+			callRunners(context, applicationArguments);
+		}
+		catch (Throwable ex) {
+			handleRunFailure(context, ex, exceptionReporters, listeners);
+			throw new IllegalStateException(ex);
+		}
+
+		try {
+			listeners.running(context);
+		}
+		catch (Throwable ex) {
+			handleRunFailure(context, ex, exceptionReporters, null);
+			throw new IllegalStateException(ex);
+		}
+		return context;
+	}
+
+```
+
+
+
+
+
+```java
+// SpringApplication#585
+/**
+	 * Strategy method used to create the {@link ApplicationContext}. By default this
+	 * method will respect any explicitly set application context or application context
+	 * class before falling back to a suitable default.
+	 * @return the application context (not yet refreshed)
+	 * @see #setApplicationContextClass(Class)
+	 */
+	protected ConfigurableApplicationContext createApplicationContext() {
+		Class<?> contextClass = this.applicationContextClass;
+		if (contextClass == null) {
+			try {
+				switch (this.webApplicationType) {
+				case SERVLET:
+                        // 通过反射创建一个容器
+					contextClass = Class.forName(DEFAULT_SERVLET_WEB_CONTEXT_CLASS);
+					break;
+				case REACTIVE:
+					contextClass = Class.forName(DEFAULT_REACTIVE_WEB_CONTEXT_CLASS);
+					break;
+				default:
+					contextClass = Class.forName(DEFAULT_CONTEXT_CLASS);
+				}
+			}
+			catch (ClassNotFoundException ex) {
+				throw new IllegalStateException(
+						"Unable create a default ApplicationContext, "
+								+ "please specify an ApplicationContextClass",
+						ex);
+			}
+		}
+		return (ConfigurableApplicationContext) BeanUtils.instantiateClass(contextClass);
+	}
+
+```
+
+
+
+```java
+// SpringApplication#368
+/** 容器的一些配置*/
+private void prepareContext(ConfigurableApplicationContext context,
+			ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
+			ApplicationArguments applicationArguments, Banner printedBanner) {
+		context.setEnvironment(environment);
+		postProcessApplicationContext(context);
+    	// 设置springboot的初始化器
+		applyInitializers(context);
+		listeners.contextPrepared(context);
+		if (this.logStartupInfo) {
+			logStartupInfo(context.getParent() == null);
+			logStartupProfileInfo(context);
+		}
+		// Add boot specific singleton beans
+		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+		if (printedBanner != null) {
+			beanFactory.registerSingleton("springBootBanner", printedBanner);
+		}
+		if (beanFactory instanceof DefaultListableBeanFactory) {
+			((DefaultListableBeanFactory) beanFactory)
+					.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
+		}
+		// Load the sources
+		Set<Object> sources = getAllSources();
+		Assert.notEmpty(sources, "Sources must not be empty");
+    	// 加载bean
+		load(context, sources.toArray(new Object[0]));
+		listeners.contextLoaded(context);
+	}
+```
+
 ## 1、Spring Boot简介
 
 
