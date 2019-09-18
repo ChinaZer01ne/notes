@@ -143,6 +143,26 @@ eureka.client.service-url.defaultZone=http://localhost:8080/eureka/,http://local
 
 
 
+
+
+
+
+## Zuul
+
+为什么要API网关？
+
+1、跨横切面的逻辑，公共代码抽取
+
+2、外部访问的单点入口
+
+作用？
+
+单点入口、路由转发、熔断降级、日志监控、安全认证。
+
+
+
+
+
 ## Hystrix
 
 
