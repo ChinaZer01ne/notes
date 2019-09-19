@@ -990,9 +990,16 @@ Gap锁防止幻读：
 
 
 > 快照读的幻读-mvcc 解决
+>
+> ​	即使其他事务修改了记录，对于当前事务来说，读取的是mvcc的快照版本。
+>
+>
+>
 > 当前读的幻读-gap 锁解决
 >
 > 如何解决的呢？
+>
+> https://blog.csdn.net/hanpeiyu1995/article/details/90201894
 
 
 
