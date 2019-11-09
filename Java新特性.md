@@ -20,6 +20,17 @@
 
 函数式接口的实例我们可以通过**lambda表达式，方法引用，构造方法引用**的方式来表示。
 
+```java
+Consumer<T> : 消费型接口
+    void accept(T t);
+Supplier<T>： 供给型接口
+    T get();
+Function<T,R> ： 函数型接口
+    R apply(T t);
+Predicate<T> ： 断言型接口
+    boolean test(T t);
+```
+
 
 
 #### 常用接口
